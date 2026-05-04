@@ -32,7 +32,9 @@ const sourceLabels: Record<string, string> = {
 
 function formatDate(date?: string) {
   if (!date) return '—';
-  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(date));
+  const parsed = new Date(date);
+  if (!Number.isFinite(parsed.getTime())) return '—';
+  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(parsed);
 }
 
 function formatPercentile(percentile?: number) {

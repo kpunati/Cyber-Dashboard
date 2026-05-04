@@ -110,14 +110,21 @@ export default function ThreatSummaryCards({ summary }: ThreatSummaryCardsProps)
   return (
     <div className="summary-cards grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-6">
       {cards.map((card) => (
-        <div key={card.label} className={`panel group relative min-h-32 overflow-hidden rounded-xl border bg-[#0b0f0f] p-4 ${card.accent}`}>
+        <div key={card.label} className={`panel group relative min-h-28 overflow-hidden rounded-xl border bg-[#0b0f0f] p-3 ${card.accent}`}>
           <div className={`absolute inset-0 bg-gradient-to-br ${card.accent.replace(/border-[^ ]+ /, '')} opacity-90 transition-opacity group-hover:opacity-100`} />
           <div className="absolute inset-0 opacity-[0.08] bg-[radial-gradient(circle_at_70%_30%,#facc15,transparent_22%),linear-gradient(135deg,#fbbf24_1px,transparent_1px)] bg-[size:18px_18px]" />
-          <div className="relative flex h-full items-center gap-4">
-            <div className="shrink-0">{renderIcon(card.icon, card.tone)}</div>
+          <div className="relative flex h-full items-center gap-3">
+            <div className="shrink-0 scale-90">{renderIcon(card.icon, card.tone)}</div>
             <div className="min-w-0">
-              <p className={`text-[0.68rem] font-bold uppercase tracking-[0.18em] ${card.tone}`}>{card.label}</p>
-              <p className="mt-2 truncate text-3xl font-semibold tracking-tight text-white">{card.value}</p>
+              <p className={`text-[0.64rem] font-bold uppercase tracking-[0.18em] ${card.tone}`}>{card.label}</p>
+              <p
+                className={`mt-1.5 break-words font-semibold leading-none tracking-tight text-white ${
+                  String(card.value).length > 12 ? 'text-[clamp(1.25rem,1.45vw,1.65rem)] leading-tight' : 'text-[clamp(1.7rem,2vw,2.35rem)]'
+                }`}
+                title={String(card.value)}
+              >
+                {card.value}
+              </p>
               <p className="mt-1 text-xs text-slate-400">{card.note}</p>
             </div>
           </div>

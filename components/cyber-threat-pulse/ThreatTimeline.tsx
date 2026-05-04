@@ -6,6 +6,12 @@ interface ThreatTimelineProps {
   timeline: { date: string; count: number }[];
 }
 
+function formatShortDate(date: string) {
+  const parsed = new Date(date);
+  if (!Number.isFinite(parsed.getTime())) return date;
+  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(parsed);
+}
+
 export default function ThreatTimeline({ timeline }: ThreatTimelineProps) {
   return (
     <div className="panel rounded-lg border border-amber-500/25 bg-[#070b0c] p-3">
@@ -17,10 +23,10 @@ export default function ThreatTimeline({ timeline }: ThreatTimelineProps) {
       </div>
       <div className="h-60">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={timeline} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+          <LineChart data={timeline} margin={{ top: 5, right: 14, left: -8, bottom: 0 }}>
             <CartesianGrid stroke="#3f3215" strokeDasharray="3 3" />
-            <XAxis dataKey="date" tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} />
+            <XAxis dataKey="date" tickFormatter={formatShortDate} tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis width={34} tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} />
             <Tooltip wrapperStyle={{ backgroundColor: '#0b1112', border: '1px solid rgba(245,158,11,0.35)' }} contentStyle={{ borderRadius: '0.5rem', color: '#fff' }} />
             <Line type="monotone" dataKey="count" stroke="#fbbf24" strokeWidth={3} dot={{ r: 2, fill: '#fbbf24' }} />
           </LineChart>

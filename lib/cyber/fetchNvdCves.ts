@@ -16,7 +16,7 @@ const fallbackNvdCves = [
 ];
 
 export async function fetchNvdCves(): Promise<CyberFetchResult<any>> {
-  const endpoint = 'https://api.nvd.nist.gov/rest/json/cves/2.0';
+  const endpoint = 'https://services.nvd.nist.gov/rest/json/cves/2.0';
   const now = new Date();
   const fetchedAt = now.toISOString();
   const weekAgo = new Date(now.valueOf() - 7 * 24 * 60 * 60 * 1000);
@@ -31,6 +31,7 @@ export async function fetchNvdCves(): Promise<CyberFetchResult<any>> {
       headers: {
         Accept: 'application/json',
         'User-Agent': 'Cyber Threat Pulse/1.0',
+        ...(process.env.NVD_API_KEY ? { apiKey: process.env.NVD_API_KEY } : {}),
       },
     });
 

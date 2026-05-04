@@ -1,20 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { CyberDashboardData } from '@/lib/cyber/types';
+import { CyberDashboardData, ThreatItem } from '@/lib/cyber/types';
 import SeverityBadge from './SeverityBadge';
 
 interface ThreatRadarProps {
   data: CyberDashboardData;
 }
-
-const severityRadius = {
-  CRITICAL: 118,
-  HIGH: 94,
-  MEDIUM: 68,
-  LOW: 44,
-  UNKNOWN: 54,
-};
 
 const severityColor = {
   CRITICAL: '#ef4444',
@@ -24,13 +16,61 @@ const severityColor = {
   UNKNOWN: '#64748b',
 };
 
+const mapClusters = [
+  { cx: 78, cy: 112, width: 48, height: 28, dots: 42 },
+  { cx: 96, cy: 150, width: 34, height: 42, dots: 30 },
+  { cx: 149, cy: 118, width: 42, height: 30, dots: 38 },
+  { cx: 182, cy: 139, width: 52, height: 36, dots: 46 },
+  { cx: 210, cy: 176, width: 34, height: 30, dots: 24 },
+  { cx: 124, cy: 207, width: 30, height: 25, dots: 20 },
+];
+
+type ActiveSignal = {
+  id: string;
+  x: number;
+  y: number;
+};
+
+function getRadarPoint(item: ThreatItem, index: number) {
+  const severity = item.severity ?? 'UNKNOWN';
+  const cluster = mapClusters[index % mapClusters.length];
+  const seed = (index + 3) * 71;
+  const normalizedX = ((seed * 19) % 100) / 100 - 0.5;
+  const normalizedY = ((seed * 31) % 100) / 100 - 0.5;
+  const epssLift = Math.min((item.epssScore ?? 0) * 10, 4);
+  const kevPull = item.isKnownExploited ? 0.88 : 1;
+  const x = cluster.cx + normalizedX * cluster.width * kevPull;
+  const y = cluster.cy + normalizedY * cluster.height - epssLift;
+
+  return {
+    x: Math.min(Math.max(x, 28), 272),
+    y: Math.min(Math.max(y, 34), 266),
+    severity,
+  };
+}
+
+function getClusterDot(clusterIndex: number, dotIndex: number, cluster: typeof mapClusters[number]) {
+  const seed = (clusterIndex + 1) * 97 + dotIndex * 37;
+  const normalizedX = ((seed * 29) % 100) / 100 - 0.5;
+  const normalizedY = ((seed * 43) % 100) / 100 - 0.5;
+  const taper = 1 - Math.min(Math.abs(normalizedY) * 0.85, 0.4);
+  return {
+    x: cluster.cx + normalizedX * cluster.width * taper,
+    y: cluster.cy + normalizedY * cluster.height,
+    opacity: 0.18 + (((seed * 11) % 7) / 100),
+  };
+}
+
 export default function ThreatRadar({ data }: ThreatRadarProps) {
   const radarItems = [...data.exploited, ...data.epssLeaderboard]
     .filter((item, index, items) => items.findIndex(candidate => candidate.id === item.id) === index)
     .sort((a, b) => (b.epssScore ?? 0) - (a.epssScore ?? 0))
     .slice(0, 14);
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const activeItem = activeId ? radarItems.find(item => item.id === activeId) : undefined;
+  const [activeSignal, setActiveSignal] = useState<ActiveSignal | null>(null);
+  const activeItem = activeSignal ? radarItems.find(item => item.id === activeSignal.id) : undefined;
+  const tooltipLeft = activeSignal ? Math.min(Math.max((activeSignal.x / 300) * 100, 16), 84) : 50;
+  const tooltipTop = activeSignal ? Math.min(Math.max((activeSignal.y / 300) * 100, 18), 82) : 50;
+  const tooltipTransform = activeSignal && activeSignal.x > 180 ? 'translate(-105%, -50%)' : 'translate(14px, -50%)';
 
   return (
     <div className="panel rounded-lg border border-amber-500/25 bg-[#070b0c] p-3" id="radar">
@@ -62,17 +102,17 @@ export default function ThreatRadar({ data }: ThreatRadarProps) {
         </div>
 
         <div
-          className="relative order-1 min-h-[430px] overflow-hidden rounded border border-amber-500/15 bg-[radial-gradient(circle_at_center,rgba(245,158,11,0.12),rgba(9,10,9,0.8)_45%,rgba(2,5,6,0.98)_78%)] p-4 xl:order-2"
-          onMouseLeave={() => setActiveId(null)}
+          className="relative order-1 min-h-[440px] overflow-hidden rounded border border-amber-500/15 bg-[radial-gradient(circle_at_center,rgba(245,158,11,0.13),rgba(9,10,9,0.8)_45%,rgba(2,5,6,0.98)_78%)] p-4 xl:order-2"
+          onMouseLeave={() => setActiveSignal(null)}
           onBlur={(event) => {
             if (!event.currentTarget.contains(event.relatedTarget)) {
-              setActiveId(null);
+              setActiveSignal(null);
             }
           }}
         >
           <div className="pointer-events-none absolute inset-0 opacity-60 bg-[linear-gradient(rgba(251,191,36,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(251,191,36,0.04)_1px,transparent_1px)] bg-[size:32px_32px]" />
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_37%_36%,rgba(251,191,36,0.28),transparent_1.3px),radial-gradient(circle_at_57%_42%,rgba(251,191,36,0.25),transparent_1.2px),radial-gradient(circle_at_45%_60%,rgba(251,191,36,0.22),transparent_1.1px),radial-gradient(circle_at_67%_62%,rgba(251,191,36,0.18),transparent_1.1px)] bg-[length:70px_52px,86px_64px,92px_72px,110px_80px]" />
-          <svg viewBox="0 0 300 300" className="relative mx-auto h-full min-h-[400px] w-full max-w-[560px]">
+          <svg viewBox="0 0 300 300" className="relative mx-auto h-full min-h-[410px] w-full max-w-[600px]">
             <defs>
               <radialGradient id="glow" cx="50%" cy="50%" r="50%">
                 <stop offset="0%" stopColor="#facc15" stopOpacity="0.42" />
@@ -83,6 +123,25 @@ export default function ThreatRadar({ data }: ThreatRadarProps) {
                 <stop offset="100%" stopColor="#facc15" stopOpacity="0" />
               </linearGradient>
             </defs>
+            <g opacity="0.85">
+              {mapClusters.map((cluster, clusterIndex) => (
+                <g key={`${cluster.cx}-${cluster.cy}`}>
+                  {Array.from({ length: cluster.dots }).map((_, dotIndex) => {
+                    const dot = getClusterDot(clusterIndex, dotIndex, cluster);
+                    return (
+                      <circle
+                        key={dotIndex}
+                        cx={dot.x}
+                        cy={dot.y}
+                        r="0.8"
+                        fill="#facc15"
+                        opacity={dot.opacity}
+                      />
+                    );
+                  })}
+                </g>
+              ))}
+            </g>
             {[125, 105, 84, 63, 42, 21].map((radius, index) => (
               <circle key={radius} cx="150" cy="150" r={radius} fill="none" stroke="#f59e0b" strokeWidth="0.7" opacity={0.38 - index * 0.035} />
             ))}
@@ -107,20 +166,17 @@ export default function ThreatRadar({ data }: ThreatRadarProps) {
               <path d="M150 150 L272 150 A122 122 0 0 1 236 236 Z" fill="url(#sweep)" />
             </g>
             {radarItems.map((item, index) => {
-              const severity = item.severity ?? 'UNKNOWN';
-              const degrees = (360 / Math.max(radarItems.length, 1)) * index - 90;
-              const radius = severityRadius[severity];
-              const x = 150 + radius * Math.cos((degrees * Math.PI) / 180);
-              const y = 150 + radius * Math.sin((degrees * Math.PI) / 180);
+              const { x, y, severity } = getRadarPoint(item, index);
               const scoreBoost = Math.min((item.epssScore ?? 0) * 5, 4);
               const nodeRadius = item.isKnownExploited ? 6.5 + scoreBoost : 4.5 + scoreBoost;
+              const signal = { id: item.id, x, y };
               return (
                 <g
                   key={item.id}
                   className="cursor-pointer outline-none"
-                  onMouseEnter={() => setActiveId(item.id)}
-                  onFocus={() => setActiveId(item.id)}
-                  onClick={() => setActiveId(currentId => currentId === item.id ? null : item.id)}
+                  onMouseEnter={() => setActiveSignal(signal)}
+                  onFocus={() => setActiveSignal(signal)}
+                  onClick={() => setActiveSignal(current => current?.id === item.id ? null : signal)}
                   tabIndex={0}
                   role="button"
                   aria-label={`Show details for ${item.cveId || item.id}`}
@@ -133,7 +189,14 @@ export default function ThreatRadar({ data }: ThreatRadarProps) {
             })}
           </svg>
           {activeItem ? (
-            <div className="absolute bottom-6 right-6 w-64 rounded-lg border border-slate-600/80 bg-[#0b1112]/95 p-4 shadow-2xl shadow-black/50">
+            <div
+              className="absolute z-20 w-64 rounded-lg border border-slate-600/80 bg-[#0b1112]/95 p-4 shadow-2xl shadow-black/50"
+              style={{
+                left: `${tooltipLeft}%`,
+                top: `${tooltipTop}%`,
+                transform: tooltipTransform,
+              }}
+            >
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="font-mono text-base font-semibold text-white">{activeItem.cveId || activeItem.id}</p>

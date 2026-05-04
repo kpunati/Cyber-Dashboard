@@ -5,9 +5,10 @@ import SeverityBadge from './SeverityBadge';
 
 interface SupplyChainWatchProps {
   items: ThreatItem[];
+  maxAdvisories?: number;
 }
 
-export default function SupplyChainWatch({ items }: SupplyChainWatchProps) {
+export default function SupplyChainWatch({ items, maxAdvisories = 5 }: SupplyChainWatchProps) {
   const ecosystemCounts = items.reduce((acc, item) => {
     const ecosystem = item.ecosystem || 'Other';
     acc[ecosystem] = (acc[ecosystem] || 0) + 1;
@@ -24,13 +25,19 @@ export default function SupplyChainWatch({ items }: SupplyChainWatchProps) {
     <div className="panel supply-chain rounded-lg border border-amber-500/25 bg-[#070b0c] p-3">
       <div className="mb-3 flex items-center justify-between gap-4">
         <h2 className="text-base font-bold uppercase text-amber-300">Supply Chain Watch <span className="font-normal text-slate-400">(GitHub Advisories)</span></h2>
-        <span className="text-xs text-amber-300">View all &gt;</span>
       </div>
       <div className="grid gap-3 lg:grid-cols-[0.95fr_1.05fr]">
         <div className="rounded border border-amber-500/20 bg-black/25">
           <div className="border-b border-amber-500/20 bg-amber-400/10 px-3 py-2 text-[0.66rem] font-bold uppercase tracking-[0.12em] text-amber-300">
             Top ecosystems
           </div>
+          {total === 0 ? (
+            <div className="p-3">
+              <div className="rounded border border-dashed border-amber-500/20 bg-black/30 px-4 py-8 text-center text-sm text-slate-400">
+                No ecosystems match the active filters.
+              </div>
+            </div>
+          ) : (
           <div className="grid grid-cols-[120px_1fr] items-center gap-3 p-3">
             <div className="relative h-28 w-28">
               <svg viewBox="0 0 120 120" className="-rotate-90">
@@ -73,6 +80,7 @@ export default function SupplyChainWatch({ items }: SupplyChainWatchProps) {
               ))}
             </div>
           </div>
+          )}
         </div>
 
         <div className="rounded border border-amber-500/20 bg-black/25">
@@ -84,7 +92,7 @@ export default function SupplyChainWatch({ items }: SupplyChainWatchProps) {
           <div className="rounded border border-dashed border-amber-500/20 bg-black/30 px-4 py-8 text-center text-sm text-slate-400">
             No open-source advisories match the active filters.
           </div>
-        ) : items.slice(0, 5).map(item => (
+        ) : items.slice(0, maxAdvisories).map(item => (
           <div key={item.id} className="border-b border-amber-500/10 py-2 last:border-0">
             <div className="flex items-start justify-between gap-3">
               <div>

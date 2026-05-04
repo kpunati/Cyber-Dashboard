@@ -38,13 +38,6 @@ body {
   font-weight: 600;
 }
 
-.cve-stream .item,
-.supply-chain .item,
-.exploited-panel .item,
-.epss-leaderboard .item {
-  border: 1px solid rgba(148, 163, 184, 0.12);
-}
-
 .radar-sweep {
   animation: radar-spin 5.5s linear infinite;
   transform-box: fill-box;

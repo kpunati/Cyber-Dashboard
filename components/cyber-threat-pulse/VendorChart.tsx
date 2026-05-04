@@ -20,7 +20,7 @@ export default function VendorChart({ vendorDistribution }: VendorChartProps) {
     <div className="panel rounded-lg border border-amber-500/20 bg-[#070b0c] p-4">
       <div className="flex items-center justify-between gap-4 mb-5">
         <div>
-          <h2 className="text-base font-bold uppercase text-amber-300">Top Vendors</h2>
+          <h2 className="text-base font-bold uppercase tracking-[0.02em] text-amber-300">Top Vendors</h2>
           <p className="mt-1 text-sm text-slate-400">Vendors with the most tracked CVEs.</p>
         </div>
         <span className="text-xs uppercase tracking-[0.2em] text-slate-500">Top 10</span>
@@ -32,27 +32,28 @@ export default function VendorChart({ vendorDistribution }: VendorChartProps) {
             margin={{ top: 5, right: 10, left: 0, bottom: 0 }}
             layout="horizontal"
           >
-            <CartesianGrid stroke="#3f3215" strokeDasharray="3 3" />
+            <CartesianGrid stroke="#3f3215" strokeDasharray="4 4" opacity={0.75} />
             <XAxis
               type="number"
-              tick={{ fill: '#94a3b8', fontSize: 12 }}
+              tick={{ fill: '#94a3b8', fontSize: 11 }}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
               type="category"
               dataKey="name"
-              tick={{ fill: '#94a3b8', fontSize: 12 }}
+              tick={{ fill: '#94a3b8', fontSize: 11 }}
               axisLine={false}
               tickLine={false}
               width={100}
             />
             <Tooltip
-              wrapperStyle={{ backgroundColor: '#111827', border: '1px solid #334155' }}
-              contentStyle={{ borderRadius: '0.75rem', color: '#fff' }}
+              cursor={{ fill: 'rgba(251,191,36,0.05)' }}
+              wrapperStyle={{ outline: 'none' }}
+              contentStyle={{ backgroundColor: '#0b1112', border: '1px solid rgba(245,158,11,0.35)', borderRadius: '0.6rem', color: '#fff' }}
               formatter={(value, name, props) => [value, props.payload.fullName]}
             />
-            <Bar dataKey="value" fill="#f59e0b" radius={[0, 4, 4, 0]} />
+            <Bar dataKey="value" fill="#f59e0b" radius={[0, 5, 5, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
