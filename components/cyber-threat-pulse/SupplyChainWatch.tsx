@@ -20,30 +20,33 @@ export default function SupplyChainWatch({ items, maxAdvisories = 5 }: SupplyCha
   const total = items.length;
   let offset = 25;
   const palette = ['#ef4444', '#f97316', '#fbbf24', '#38d5d7', '#64748b'];
+  const isExpanded = maxAdvisories > 5;
+  const displayedAdvisories = items.slice(0, maxAdvisories);
+  const emptyStateClass = 'rounded border border-dashed border-amber-500/20 bg-black/30 px-4 py-8 text-center text-sm text-slate-400';
 
   return (
     <div className="panel supply-chain rounded-lg border border-amber-500/25 bg-[#070b0c] p-3">
       <div className="mb-3 flex items-center justify-between gap-4">
         <h2 className="text-base font-bold uppercase text-amber-300">Supply Chain Watch <span className="font-normal text-slate-400">(GitHub Advisories)</span></h2>
       </div>
-      <div className="grid gap-3 lg:grid-cols-[0.95fr_1.05fr]">
-        <div className="rounded border border-amber-500/20 bg-black/25">
-          <div className="border-b border-amber-500/20 bg-amber-400/10 px-3 py-2 text-[0.66rem] font-bold uppercase tracking-[0.12em] text-amber-300">
+      <div className="grid gap-3 lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="min-h-[13rem] rounded border border-amber-500/20 bg-black/25">
+          <div className="border-b border-amber-500/20 bg-[#171407] px-3 py-2 text-[0.66rem] font-black uppercase tracking-[0.18em] text-amber-300">
             Top ecosystems
           </div>
           {total === 0 ? (
             <div className="p-3">
-              <div className="rounded border border-dashed border-amber-500/20 bg-black/30 px-4 py-8 text-center text-sm text-slate-400">
+              <div className={emptyStateClass}>
                 No ecosystems match the active filters.
               </div>
             </div>
           ) : (
-          <div className="grid grid-cols-[120px_1fr] items-center gap-3 p-3">
-            <div className="relative h-28 w-28">
-              <svg viewBox="0 0 120 120" className="-rotate-90">
-                <circle cx="60" cy="60" r="38" fill="none" stroke="#111827" strokeWidth="20" />
+          <div className="grid gap-4 p-3 sm:grid-cols-[9rem_1fr] sm:items-center">
+            <div className="relative mx-auto h-32 w-32 sm:h-36 sm:w-36">
+              <svg viewBox="0 0 120 120" className="-rotate-90 drop-shadow-[0_0_18px_rgba(251,191,36,0.08)]">
+                <circle cx="60" cy="60" r="39" fill="none" stroke="#0f172a" strokeWidth="18" />
                 {ecosystemData.map(([ecosystem, count], index) => {
-                  const circumference = 2 * Math.PI * 38;
+                  const circumference = 2 * Math.PI * 39;
                   const percentage = total ? count / total : 0;
                   const dash = percentage * circumference;
                   const currentOffset = offset;
@@ -53,12 +56,13 @@ export default function SupplyChainWatch({ items, maxAdvisories = 5 }: SupplyCha
                       key={ecosystem}
                       cx="60"
                       cy="60"
-                      r="38"
+                      r="39"
                       fill="none"
                       stroke={palette[index]}
-                      strokeWidth="20"
+                      strokeWidth="18"
                       strokeDasharray={`${dash} ${circumference - dash}`}
                       strokeDashoffset={currentOffset}
+                      strokeLinecap="butt"
                     />
                   );
                 })}
@@ -68,14 +72,14 @@ export default function SupplyChainWatch({ items, maxAdvisories = 5 }: SupplyCha
                 <span className="text-xs text-slate-400">Total</span>
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {ecosystemData.map(([ecosystem, count], index) => (
-                <div key={ecosystem} className="flex items-center justify-between gap-2 text-xs">
-                  <span className="flex items-center gap-2 text-slate-300">
+                <div key={ecosystem} className="grid grid-cols-[1fr_auto] items-center gap-3 text-xs">
+                  <span className="flex min-w-0 items-center gap-2 text-slate-300">
                     <span className="h-2 w-2 rounded-full" style={{ backgroundColor: palette[index] }} />
-                    {ecosystem}
+                    <span className="truncate">{ecosystem}</span>
                   </span>
-                  <span className="text-slate-400">{count} ({total ? Math.round((count / total) * 100) : 0}%)</span>
+                  <span className="font-mono text-slate-400">{count} ({total ? Math.round((count / total) * 100) : 0}%)</span>
                 </div>
               ))}
             </div>
@@ -83,20 +87,20 @@ export default function SupplyChainWatch({ items, maxAdvisories = 5 }: SupplyCha
           )}
         </div>
 
-        <div className="rounded border border-amber-500/20 bg-black/25">
-          <div className="border-b border-amber-500/20 bg-amber-400/10 px-3 py-2 text-[0.66rem] font-bold uppercase tracking-[0.12em] text-amber-300">
+        <div className="min-h-[13rem] rounded border border-amber-500/20 bg-black/25">
+          <div className="border-b border-amber-500/20 bg-[#171407] px-3 py-2 text-[0.66rem] font-black uppercase tracking-[0.18em] text-amber-300">
             Latest advisories
           </div>
-          <div className="max-h-56 overflow-hidden p-3">
+          <div className={`${isExpanded ? 'max-h-80 overflow-y-auto pr-2' : 'max-h-56 overflow-hidden'} p-3`}>
         {items.length === 0 ? (
-          <div className="rounded border border-dashed border-amber-500/20 bg-black/30 px-4 py-8 text-center text-sm text-slate-400">
+          <div className={emptyStateClass}>
             No open-source advisories match the active filters.
           </div>
-        ) : items.slice(0, maxAdvisories).map(item => (
-          <div key={item.id} className="border-b border-amber-500/10 py-2 last:border-0">
+        ) : displayedAdvisories.map(item => (
+          <div key={item.id} className="border-b border-amber-500/10 py-2.5 last:border-0">
             <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="font-mono text-xs text-slate-300">{item.id}</p>
+              <div className="min-w-0">
+                <p className="font-mono text-xs font-semibold text-slate-300">{item.id}</p>
                 <p className="mt-1 line-clamp-1 text-xs leading-5 text-slate-400">{item.packageName || item.title}</p>
               </div>
               <SeverityBadge severity={item.severity || 'UNKNOWN'} />

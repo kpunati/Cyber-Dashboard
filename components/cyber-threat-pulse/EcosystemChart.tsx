@@ -45,6 +45,10 @@ export default function EcosystemChart({ ecosystemDistribution }: EcosystemChart
               tick={{ fill: '#94a3b8', fontSize: 11 }}
               axisLine={false}
               tickLine={false}
+              interval={0}
+              angle={-12}
+              textAnchor="end"
+              height={42}
             />
             <YAxis
               width={34}

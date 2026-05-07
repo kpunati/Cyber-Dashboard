@@ -70,6 +70,9 @@ export type CyberDashboardData = {
     timeline: {
       date: string;
       count: number;
+      cvePublished?: number;
+      kevAdded?: number;
+      ossAdvisories?: number;
     }[];
   };
 };

@@ -15,6 +15,11 @@ const fallbackNvdCves = [
   },
 ];
 
+function getPublishedTime(item: { published?: string; cveId?: string }) {
+  const parsed = item.published ? new Date(item.published).getTime() : 0;
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 export async function fetchNvdCves(): Promise<CyberFetchResult<any>> {
   const endpoint = 'https://services.nvd.nist.gov/rest/json/cves/2.0';
   const now = new Date();
@@ -27,12 +32,17 @@ export async function fetchNvdCves(): Promise<CyberFetchResult<any>> {
   });
 
   try {
+    const signal = typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal
+      ? AbortSignal.timeout(10000)
+      : undefined;
+
     const response = await fetch(`${endpoint}?${params.toString()}`, {
       headers: {
         Accept: 'application/json',
         'User-Agent': 'Cyber Threat Pulse/1.0',
         ...(process.env.NVD_API_KEY ? { apiKey: process.env.NVD_API_KEY } : {}),
       },
+      signal,
     });
 
     if (!response.ok) {
@@ -76,7 +86,8 @@ export async function fetchNvdCves(): Promise<CyberFetchResult<any>> {
         cvssData: { baseSeverity, baseScore },
         published: cve.published,
       };
-    });
+    }).sort((a: any, b: any) => getPublishedTime(b) - getPublishedTime(a) || String(a.cveId).localeCompare(String(b.cveId)));
+
     return {
       items,
       status: {

@@ -21,12 +21,21 @@ const COLORS = {
 const severityOrder = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'UNKNOWN'];
 
 export default function SeverityChart({ severityDistribution }: SeverityChartProps) {
+  const unknownCount = severityDistribution.UNKNOWN ?? severityDistribution.unknown ?? 0;
+  const knownTotal = severityOrder
+    .filter(severity => severity !== 'UNKNOWN')
+    .reduce((sum, severity) => sum + (severityDistribution[severity] ?? severityDistribution[severity.toLowerCase()] ?? 0), 0);
   const data = severityOrder
-    .map(severity => ({
-      name: severity,
-      value: severityDistribution[severity] ?? severityDistribution[severity.toLowerCase()] ?? 0,
-      color: COLORS[severity as keyof typeof COLORS] || '#64748b'
-    }))
+    .map(severity => {
+      const rawValue = severityDistribution[severity] ?? severityDistribution[severity.toLowerCase()] ?? 0;
+      const displayValue = severity === 'UNKNOWN' && knownTotal > 0 ? Math.min(rawValue, Math.max(knownTotal * 0.45, 1)) : rawValue;
+      return {
+        name: severity,
+        value: displayValue,
+        rawValue,
+        color: COLORS[severity as keyof typeof COLORS] || '#64748b'
+      };
+    })
     .filter(item => item.value > 0);
 
   return (
@@ -36,7 +45,9 @@ export default function SeverityChart({ severityDistribution }: SeverityChartPro
           <h2 className="text-base font-bold uppercase tracking-[0.02em] text-amber-300">Severity Distribution</h2>
           <p className="mt-1 text-sm text-slate-400">CVEs by severity level.</p>
         </div>
-        <span className="text-xs uppercase tracking-[0.2em] text-slate-500">All sources</span>
+        <span className="text-xs uppercase tracking-[0.2em] text-slate-500">
+          {unknownCount > knownTotal && knownTotal > 0 ? 'Unknown muted' : 'All sources'}
+        </span>
       </div>
       <div className="h-72">
         <ResponsiveContainer width="100%" height="100%">
@@ -59,6 +70,7 @@ export default function SeverityChart({ severityDistribution }: SeverityChartPro
             <Tooltip
               wrapperStyle={{ outline: 'none' }}
               contentStyle={{ backgroundColor: '#0b1112', border: '1px solid rgba(245,158,11,0.35)', borderRadius: '0.6rem', color: '#fff' }}
+              formatter={(_, name, props) => [props.payload.rawValue, name]}
             />
             <Legend
               iconType="square"

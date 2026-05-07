@@ -71,6 +71,11 @@ function getEarliestTime(...dates: Array<string | undefined>): string | undefine
     .sort((a, b) => getDateTime(a) - getDateTime(b))[0];
 }
 
+function toDateKey(date?: string): string | undefined {
+  const normalizedDate = normalizeDate(date);
+  return normalizedDate?.split('T')[0];
+}
+
 function byNewest(a: ThreatItem, b: ThreatItem): number {
   return getPublishedTime(b) - getPublishedTime(a) || a.id.localeCompare(b.id);
 }
@@ -83,6 +88,32 @@ function byPriority(a: ThreatItem, b: ThreatItem): number {
     byNewest(a, b) ||
     sourceRank[b.source] - sourceRank[a.source] ||
     a.id.localeCompare(b.id)
+  );
+}
+
+function hasContextBeyondEpss(item: ThreatItem): boolean {
+  return Boolean(
+    item.isKnownExploited ||
+    (item.severity && item.severity !== 'UNKNOWN') ||
+    item.cvssScore !== undefined ||
+    item.vendor ||
+    item.product ||
+    item.packageName ||
+    item.source !== 'EPSS',
+  );
+}
+
+function isLowContextEpssOnly(item: ThreatItem): boolean {
+  return item.source === 'EPSS' && !hasContextBeyondEpss(item) && (item.epssScore ?? 0) < 0.05;
+}
+
+function byEpssLeaderboard(a: ThreatItem, b: ThreatItem): number {
+  return (
+    Number(isLowContextEpssOnly(a)) - Number(isLowContextEpssOnly(b)) ||
+    (b.epssScore ?? 0) - (a.epssScore ?? 0) ||
+    Number(Boolean(b.isKnownExploited)) - Number(Boolean(a.isKnownExploited)) ||
+    severityRank[b.severity ?? 'UNKNOWN'] - severityRank[a.severity ?? 'UNKNOWN'] ||
+    byPriority(a, b)
   );
 }
 
@@ -253,14 +284,28 @@ export async function fetchAndNormalizeData(): Promise<CyberDashboardData> {
   const advisories = allItems.filter(i => i.source === 'GITHUB_ADVISORY').sort(byNewest).slice(0, 10);
   const epssLeaderboard = allItems
     .filter(i => i.epssScore !== undefined)
-    .sort((a, b) => (b.epssScore || 0) - (a.epssScore || 0) || byPriority(a, b))
+    .sort(byEpssLeaderboard)
     .slice(0, 10);
 
   // Compute real chart data from normalized items
   const severityDistribution: Record<string, number> = {};
   const ecosystemDistribution: Record<string, number> = {};
   const vendorDistribution: Record<string, number> = {};
-  const timelineMap: Record<string, number> = {};
+  const timelineMap: Record<string, { cvePublished: number; kevAdded: number; ossAdvisories: number }> = {};
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  const timelineStart = new Date(today);
+  timelineStart.setUTCDate(today.getUTCDate() - 29);
+
+  Array.from({ length: 30 }).forEach((_, index) => {
+    const date = new Date(timelineStart);
+    date.setUTCDate(timelineStart.getUTCDate() + index);
+    timelineMap[date.toISOString().split('T')[0]] = {
+      cvePublished: 0,
+      kevAdded: 0,
+      ossAdvisories: 0,
+    };
+  });
 
   allItems.forEach(item => {
     // Severity distribution
@@ -278,19 +323,31 @@ export async function fetchAndNormalizeData(): Promise<CyberDashboardData> {
       vendorDistribution[item.vendor] = (vendorDistribution[item.vendor] || 0) + 1;
     }
 
-    // Timeline by date (last 30 days)
-    const normalizedDate = normalizeDate(item.datePublished);
-    if (normalizedDate) {
-      const date = normalizedDate.split('T')[0];
-      timelineMap[date] = (timelineMap[date] || 0) + 1;
+    const publishedDate = toDateKey(item.datePublished);
+    const kevDate = toDateKey(item.dateAddedToKev);
+
+    if (publishedDate && timelineMap[publishedDate]) {
+      if (item.source === 'NVD') {
+        timelineMap[publishedDate].cvePublished += 1;
+      }
+      if (item.source === 'GITHUB_ADVISORY') {
+        timelineMap[publishedDate].ossAdvisories += 1;
+      }
+    }
+
+    if (kevDate && timelineMap[kevDate]) {
+      timelineMap[kevDate].kevAdded += 1;
     }
   });
 
-  // Convert timeline map to sorted array
+  // Convert timeline map to sorted, gap-filled 30-day array.
   const timeline = Object.entries(timelineMap)
     .sort(([a], [b]) => a.localeCompare(b))
-    .slice(-30) // Last 30 days
-    .map(([date, count]) => ({ date, count }));
+    .map(([date, values]) => ({
+      date,
+      count: values.cvePublished + values.kevAdded + values.ossAdvisories,
+      ...values,
+    }));
 
   const charts = {
     severityDistribution,

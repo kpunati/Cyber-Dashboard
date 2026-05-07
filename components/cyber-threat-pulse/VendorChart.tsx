@@ -13,7 +13,8 @@ export default function VendorChart({ vendorDistribution }: VendorChartProps) {
     .map(([vendor, count]) => ({
       name: vendor.length > 15 ? vendor.substring(0, 15) + '...' : vendor,
       fullName: vendor,
-      value: count
+      value: count,
+      displayValue: Math.log10(count + 1)
     }));
 
   return (
@@ -23,7 +24,7 @@ export default function VendorChart({ vendorDistribution }: VendorChartProps) {
           <h2 className="text-base font-bold uppercase tracking-[0.02em] text-amber-300">Top Vendors</h2>
           <p className="mt-1 text-sm text-slate-400">Vendors with the most tracked CVEs.</p>
         </div>
-        <span className="text-xs uppercase tracking-[0.2em] text-slate-500">Top 10</span>
+        <span className="text-xs uppercase tracking-[0.2em] text-slate-500">Top 10 / scaled</span>
       </div>
       <div className="h-72">
         <ResponsiveContainer width="100%" height="100%">
@@ -38,6 +39,7 @@ export default function VendorChart({ vendorDistribution }: VendorChartProps) {
               tick={{ fill: '#94a3b8', fontSize: 11 }}
               axisLine={false}
               tickLine={false}
+              tickFormatter={(value) => `${Math.round(Math.pow(10, Number(value)) - 1)}`}
             />
             <YAxis
               type="category"
@@ -51,9 +53,9 @@ export default function VendorChart({ vendorDistribution }: VendorChartProps) {
               cursor={{ fill: 'rgba(251,191,36,0.05)' }}
               wrapperStyle={{ outline: 'none' }}
               contentStyle={{ backgroundColor: '#0b1112', border: '1px solid rgba(245,158,11,0.35)', borderRadius: '0.6rem', color: '#fff' }}
-              formatter={(value, name, props) => [value, props.payload.fullName]}
+              formatter={(_, name, props) => [props.payload.value, props.payload.fullName]}
             />
-            <Bar dataKey="value" fill="#f59e0b" radius={[0, 5, 5, 0]} />
+            <Bar dataKey="displayValue" fill="#f59e0b" radius={[0, 5, 5, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

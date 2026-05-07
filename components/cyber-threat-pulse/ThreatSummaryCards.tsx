@@ -15,6 +15,7 @@ export default function ThreatSummaryCards({ summary }: ThreatSummaryCardsProps)
       accent: 'border-red-500/60 from-red-500/25 to-[#100807]',
       icon: 'biohazard',
       tone: 'text-red-300',
+      info: 'Known exploited means attackers have already used these security flaws in the real world.',
     },
     {
       label: 'Critical CVEs',
@@ -23,6 +24,7 @@ export default function ThreatSummaryCards({ summary }: ThreatSummaryCardsProps)
       accent: 'border-amber-400/60 from-amber-400/20 to-[#100c03]',
       icon: 'shield',
       tone: 'text-amber-200',
+      info: 'Critical CVEs are the most serious reported software flaws and should usually be fixed first.',
     },
     {
       label: 'High EPSS',
@@ -31,6 +33,7 @@ export default function ThreatSummaryCards({ summary }: ThreatSummaryCardsProps)
       accent: 'border-cyan-400/50 from-cyan-400/20 to-[#031013]',
       icon: 'target',
       tone: 'text-cyan-200',
+      info: 'High EPSS means a flaw is more likely to be exploited soon based on public threat signals.',
     },
     {
       label: 'OSS Advisories',
@@ -39,6 +42,7 @@ export default function ThreatSummaryCards({ summary }: ThreatSummaryCardsProps)
       accent: 'border-amber-400/50 from-yellow-400/18 to-[#100c03]',
       icon: 'cube',
       tone: 'text-amber-200',
+      info: 'OSS advisories are security warnings for open-source software packages used by developers.',
     },
     {
       label: 'Top Ecosystem',
@@ -47,6 +51,7 @@ export default function ThreatSummaryCards({ summary }: ThreatSummaryCardsProps)
       accent: 'border-amber-400/50 from-amber-400/16 to-[#100c03]',
       icon: 'code',
       tone: 'text-amber-200',
+      info: 'Top ecosystem shows which package community, like npm or pip, has the most tracked advisories here.',
     },
     {
       label: 'Top Vendor',
@@ -55,6 +60,7 @@ export default function ThreatSummaryCards({ summary }: ThreatSummaryCardsProps)
       accent: 'border-amber-400/50 from-yellow-400/18 to-[#100c03]',
       icon: 'city',
       tone: 'text-amber-200',
+      info: 'Top vendor shows the company or project with the most tracked CVEs in this dashboard.',
     },
   ];
 
@@ -107,19 +113,54 @@ export default function ThreatSummaryCards({ summary }: ThreatSummaryCardsProps)
     );
   };
 
+  const getTooltipPlacement = (index: number) => {
+    if (index % 3 === 0) {
+      return 'right-0 sm:left-0 sm:right-auto';
+    }
+
+    if (index % 3 === 1) {
+      return 'right-0 xl:left-1/2 xl:right-auto xl:-translate-x-1/2';
+    }
+
+    return 'right-0';
+  };
+
   return (
     <div className="summary-cards grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-6">
-      {cards.map((card) => (
-        <div key={card.label} className={`panel group relative min-h-28 overflow-hidden rounded-xl border bg-[#0b0f0f] p-3 ${card.accent}`}>
+      {cards.map((card, index) => (
+        <div
+          key={card.label}
+          className={`panel group relative min-h-[7.25rem] overflow-visible rounded-xl border bg-[#0b0f0f] p-3 shadow-[0_0_0_1px_rgba(251,191,36,0.03),0_20px_48px_rgba(0,0,0,0.38)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_0_24px_rgba(245,158,11,0.16),0_24px_54px_rgba(0,0,0,0.45)] ${card.accent}`}
+        >
+          <div className="group/info absolute right-2 top-2 z-40">
+            <button
+              type="button"
+              className="flex h-5 w-5 items-center justify-center rounded-full border border-slate-500/50 bg-black/65 text-[0.68rem] font-bold text-slate-300 outline-none ring-offset-2 ring-offset-black transition hover:border-amber-300/70 hover:bg-amber-300/10 hover:text-amber-200 focus:border-amber-300/80 focus:text-amber-100 focus:ring-2 focus:ring-amber-300/30"
+              aria-label={`What does ${card.label} mean?`}
+              aria-describedby={`${card.label.replace(/\s+/g, '-').toLowerCase()}-info`}
+            >
+              i
+            </button>
+            <div
+              id={`${card.label.replace(/\s+/g, '-').toLowerCase()}-info`}
+              role="tooltip"
+              className={`pointer-events-none absolute top-7 hidden w-[min(17rem,calc(100vw-2rem))] rounded-lg border border-amber-400/30 bg-[#070b0c]/98 p-3 text-[0.74rem] font-medium leading-5 text-slate-200 shadow-2xl shadow-black/70 backdrop-blur-sm group-hover/info:block group-focus-within/info:block ${getTooltipPlacement(index)}`}
+            >
+              <span className="mb-1 block text-[0.62rem] font-bold uppercase tracking-[0.18em] text-amber-300">
+                Quick meaning
+              </span>
+              {card.info}
+            </div>
+          </div>
           <div className={`absolute inset-0 bg-gradient-to-br ${card.accent.replace(/border-[^ ]+ /, '')} opacity-90 transition-opacity group-hover:opacity-100`} />
           <div className="absolute inset-0 opacity-[0.08] bg-[radial-gradient(circle_at_70%_30%,#facc15,transparent_22%),linear-gradient(135deg,#fbbf24_1px,transparent_1px)] bg-[size:18px_18px]" />
           <div className="relative flex h-full items-center gap-3">
-            <div className="shrink-0 scale-90">{renderIcon(card.icon, card.tone)}</div>
+            <div className="shrink-0 scale-95 drop-shadow-[0_0_18px_rgba(251,191,36,0.12)]">{renderIcon(card.icon, card.tone)}</div>
             <div className="min-w-0">
               <p className={`text-[0.64rem] font-bold uppercase tracking-[0.18em] ${card.tone}`}>{card.label}</p>
               <p
-                className={`mt-1.5 break-words font-semibold leading-none tracking-tight text-white ${
-                  String(card.value).length > 12 ? 'text-[clamp(1.25rem,1.45vw,1.65rem)] leading-tight' : 'text-[clamp(1.7rem,2vw,2.35rem)]'
+                className={`mt-1.5 max-w-full break-words font-semibold leading-none tracking-tight text-white ${
+                  String(card.value).length > 12 ? 'text-[clamp(1.25rem,1.4vw,1.6rem)] leading-tight' : 'text-[clamp(1.75rem,2vw,2.35rem)]'
                 }`}
                 title={String(card.value)}
               >
