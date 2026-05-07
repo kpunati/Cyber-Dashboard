@@ -31,7 +31,7 @@ function withCacheStatus(
       ...data.cache,
       status,
       provider,
-      cachedAt: status === 'cached' ? data.cache.cachedAt : new Date().toISOString(),
+      cachedAt: status === 'fresh' ? new Date().toISOString() : data.cache.cachedAt,
     },
   };
 }
@@ -69,12 +69,21 @@ async function setCachedData(data: CyberDashboardData): Promise<void> {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const allowDevCacheControls = process.env.NODE_ENV !== 'production';
+    const skipCache = allowDevCacheControls && searchParams.get('skipCache') === '1';
+    const forceError = allowDevCacheControls && searchParams.get('forceError') === '1';
+
     // Try to get cached data first
-    const cached = await getCachedData();
+    const cached = skipCache ? null : await getCachedData();
     if (cached) {
       return NextResponse.json(withCacheStatus(cached, 'cached', redis ? 'redis' : 'memory'));
+    }
+
+    if (forceError) {
+      throw new Error('Forced cyber threat fetch failure for development cache validation.');
     }
 
     // Fetch fresh data

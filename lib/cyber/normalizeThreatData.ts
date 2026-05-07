@@ -1,8 +1,11 @@
 import { CyberDashboardData, ThreatItem } from './types';
 import { fetchCisaKev } from './fetchCisaKev';
-import { fetchNvdCves } from './fetchNvdCves';
+import { fetchNvdCves, fetchNvdCvesByIds } from './fetchNvdCves';
 import { fetchGithubAdvisories } from './fetchGithubAdvisories';
-import { fetchEpss } from './fetchEpss';
+import { fetchEpss, fetchEpssForCves } from './fetchEpss';
+import { fetchCveRecordEnrichment } from './fetchCveRecordEnrichment';
+import { fetchOsvEnrichment } from './fetchOsvEnrichment';
+import { fetchVulnCheckEnrichment } from './fetchVulnCheckEnrichment';
 import { computeThreatStats } from './computeThreatStats';
 
 const severityRank = {
@@ -40,6 +43,11 @@ function normalizeNumber(value: unknown): number | undefined {
 
 function pickText(...values: Array<string | undefined>): string | undefined {
   return values.map(value => value?.trim()).find(Boolean);
+}
+
+function addSource(item: ThreatItem, source: string | undefined) {
+  if (!source) return;
+  item.enrichmentSources = Array.from(new Set([...(item.enrichmentSources ?? []), source]));
 }
 
 function getDateTime(date?: string): number {
@@ -91,6 +99,28 @@ function byPriority(a: ThreatItem, b: ThreatItem): number {
   );
 }
 
+function byDisplayPriority(a: ThreatItem, b: ThreatItem): number {
+  return (
+    sourceRank[b.source] - sourceRank[a.source] ||
+    Number(Boolean(b.isKnownExploited)) - Number(Boolean(a.isKnownExploited)) ||
+    severityRank[b.severity ?? 'UNKNOWN'] - severityRank[a.severity ?? 'UNKNOWN'] ||
+    (b.epssScore ?? 0) - (a.epssScore ?? 0) ||
+    byNewest(a, b) ||
+    a.id.localeCompare(b.id)
+  );
+}
+
+function uniqueByCveOrId(items: ThreatItem[]): ThreatItem[] {
+  const grouped = new Map<string, ThreatItem[]>();
+
+  items.forEach(item => {
+    const key = normalizeCveId(item.cveId) ?? item.id;
+    grouped.set(key, [...(grouped.get(key) ?? []), item]);
+  });
+
+  return Array.from(grouped.values()).map(group => [...group].sort(byDisplayPriority)[0]);
+}
+
 function hasContextBeyondEpss(item: ThreatItem): boolean {
   return Boolean(
     item.isKnownExploited ||
@@ -137,13 +167,14 @@ function enrichCorrelatedItems(items: ThreatItem[]): ThreatItem[] {
     const epssItem = [...group]
       .filter(item => item.epssScore !== undefined || item.epssPercentile !== undefined)
       .sort((a, b) => (b.epssScore ?? -1) - (a.epssScore ?? -1) || (b.epssPercentile ?? -1) - (a.epssPercentile ?? -1))[0];
-    const severity = [...group]
-      .map(item => item.severity ?? 'UNKNOWN')
-      .sort((a, b) => severityRank[b] - severityRank[a])[0];
-    const cvssScore = [...group]
-      .map(item => item.cvssScore)
-      .filter((score): score is number => score !== undefined)
-      .sort((a, b) => b - a)[0];
+    const severityItem = [...group]
+      .filter(item => item.severity && item.severity !== 'UNKNOWN')
+      .sort((a, b) => severityRank[b.severity ?? 'UNKNOWN'] - severityRank[a.severity ?? 'UNKNOWN'] || sourceRank[b.source] - sourceRank[a.source])[0];
+    const severity = severityItem?.severity ?? 'UNKNOWN';
+    const cvssItem = [...group]
+      .filter(item => item.cvssScore !== undefined)
+      .sort((a, b) => (b.cvssScore ?? 0) - (a.cvssScore ?? 0) || sourceRank[b.source] - sourceRank[a.source])[0];
+    const cvssScore = cvssItem?.cvssScore;
     const datePublished = getEarliestTime(...group.map(item => item.datePublished));
     const enrichment = {
       title: pickText(kevItem?.title, githubItem?.title, nvdItem?.title, rankedByPriority[0]?.title, cveId) ?? cveId ?? 'Unknown CVE',
@@ -154,8 +185,11 @@ function enrichCorrelatedItems(items: ThreatItem[]): ThreatItem[] {
       packageName: pickText(githubItem?.packageName, rankedByPriority[0]?.packageName),
       severity,
       cvssScore,
+      severitySource: severityItem?.severitySource ?? severityItem?.source,
+      cvssSource: cvssItem?.cvssSource ?? cvssItem?.source,
       epssScore: epssItem?.epssScore,
       epssPercentile: epssItem?.epssPercentile,
+      epssSource: epssItem?.epssSource ?? epssItem?.source,
       isKnownExploited: group.some(item => item.isKnownExploited),
       datePublished,
       dateAddedToKev: kevItem?.dateAddedToKev,
@@ -170,15 +204,27 @@ function enrichCorrelatedItems(items: ThreatItem[]): ThreatItem[] {
       item.product = pickText(item.product, enrichment.product);
       item.ecosystem = pickText(item.ecosystem, enrichment.ecosystem);
       item.packageName = pickText(item.packageName, enrichment.packageName);
-      item.severity = item.severity && item.severity !== 'UNKNOWN' ? item.severity : enrichment.severity;
+      if (!item.severity || item.severity === 'UNKNOWN') {
+        item.severity = enrichment.severity;
+        item.severitySource = item.severity !== 'UNKNOWN' ? enrichment.severitySource : item.severitySource;
+      }
       item.cvssScore = item.cvssScore ?? enrichment.cvssScore;
+      item.cvssSource = item.cvssSource ?? enrichment.cvssSource;
       item.epssScore = item.epssScore ?? enrichment.epssScore;
       item.epssPercentile = item.epssPercentile ?? enrichment.epssPercentile;
+      item.epssSource = item.epssSource ?? enrichment.epssSource;
       item.isKnownExploited = item.isKnownExploited || enrichment.isKnownExploited;
       item.datePublished = item.datePublished ?? enrichment.datePublished;
       item.dateAddedToKev = item.dateAddedToKev ?? enrichment.dateAddedToKev;
       item.dueDate = item.dueDate ?? enrichment.dueDate;
       item.url = item.url ?? enrichment.url;
+      [
+        kevItem?.source,
+        nvdItem?.source,
+        githubItem?.source,
+        epssItem?.source,
+        ...(group.flatMap(sourceItem => sourceItem.enrichmentSources ?? [])),
+      ].forEach(source => addSource(item, source));
     });
   });
 
@@ -217,6 +263,7 @@ export async function fetchAndNormalizeData(): Promise<CyberDashboardData> {
       dateAddedToKev: normalizeDate(item.dateAdded),
       dueDate: normalizeDate(item.dueDate),
       url: item.notes,
+      enrichmentSources: ['CISA_KEV'],
     });
   });
 
@@ -234,7 +281,11 @@ export async function fetchAndNormalizeData(): Promise<CyberDashboardData> {
       product: pickText(item.product),
       severity: normalizeSeverity(item.cvssData?.baseSeverity),
       cvssScore: normalizeNumber(item.cvssData?.baseScore),
+      severitySource: item.cvssData?.baseSeverity ? 'NVD' : undefined,
+      cvssSource: item.cvssData?.baseScore ? 'NVD' : undefined,
       datePublished: normalizeDate(item.published),
+      url: item.url,
+      enrichmentSources: ['NVD'],
     });
   });
 
@@ -251,8 +302,10 @@ export async function fetchAndNormalizeData(): Promise<CyberDashboardData> {
       ecosystem: vulnerability?.package?.ecosystem ?? item.package?.ecosystem,
       packageName: vulnerability?.package?.name ?? item.package?.name,
       severity: normalizeSeverity(item.severity),
+      severitySource: item.severity ? 'GITHUB_ADVISORY' : undefined,
       datePublished: normalizeDate(item.published_at),
       url: item.html_url,
+      enrichmentSources: ['GITHUB_ADVISORY'],
     });
   });
 
@@ -269,21 +322,149 @@ export async function fetchAndNormalizeData(): Promise<CyberDashboardData> {
       severity: 'UNKNOWN',
       epssScore,
       epssPercentile: normalizeNumber(item.percentile),
+      epssSource: 'EPSS',
       datePublished: normalizeDate(item.date),
+      enrichmentSources: ['EPSS'],
+    });
+  });
+
+  const cveIds = Array.from(new Set(allItems.map(item => normalizeCveId(item.cveId)).filter((cveId): cveId is string => Boolean(cveId))));
+  const missingContextCveIds = cveIds
+    .filter(cveId => {
+      const related = allItems.filter(item => normalizeCveId(item.cveId) === cveId);
+      return related.some(item => item.isKnownExploited || item.source === 'EPSS')
+        && !related.some(item => item.severity && item.severity !== 'UNKNOWN' && item.cvssScore !== undefined);
+    })
+    .slice(0, 20);
+  const targetedEpssIds = cveIds.slice(0, 120);
+  const osvIds = cveIds
+    .filter(cveId => allItems.some(item => normalizeCveId(item.cveId) === cveId && item.source === 'GITHUB_ADVISORY'))
+    .slice(0, 120);
+
+  const [targetedNvdResult, targetedEpssResult, cveRecordResult, osvResult, vulnCheckResult] = await Promise.all([
+    fetchNvdCvesByIds(missingContextCveIds),
+    fetchEpssForCves(targetedEpssIds),
+    fetchCveRecordEnrichment(missingContextCveIds),
+    fetchOsvEnrichment(osvIds),
+    fetchVulnCheckEnrichment(missingContextCveIds),
+  ]);
+
+  targetedNvdResult.items.forEach((item: any) => {
+    const cveId = normalizeCveId(item.cveId);
+    if (!cveId) return;
+    allItems.push({
+      id: `${cveId}-nvd-enrichment`,
+      source: 'NVD',
+      cveId,
+      title: cveId,
+      description: pickText(item.descriptions?.[0]?.value),
+      vendor: pickText(item.vendor),
+      product: pickText(item.product),
+      severity: normalizeSeverity(item.cvssData?.baseSeverity),
+      cvssScore: normalizeNumber(item.cvssData?.baseScore),
+      severitySource: item.cvssData?.baseSeverity ? 'NVD' : undefined,
+      cvssSource: item.cvssData?.baseScore ? 'NVD' : undefined,
+      datePublished: normalizeDate(item.published),
+      url: item.url,
+      enrichmentSources: ['NVD_TARGETED'],
+    });
+  });
+
+  targetedEpssResult.items.forEach((item: any) => {
+    const cveId = normalizeCveId(item.cve);
+    const epssScore = normalizeNumber(item.epss);
+    if (!cveId || epssScore === undefined || epssScore <= 0.0001) return;
+    allItems.push({
+      id: `${cveId}-epss-enrichment`,
+      source: 'EPSS',
+      cveId,
+      title: cveId,
+      severity: 'UNKNOWN',
+      epssScore,
+      epssPercentile: normalizeNumber(item.percentile),
+      epssSource: 'EPSS',
+      datePublished: normalizeDate(item.date),
+      enrichmentSources: ['EPSS_TARGETED'],
+    });
+  });
+
+  cveRecordResult.items.forEach((item: any) => {
+    const cveId = normalizeCveId(item.cveId);
+    if (!cveId) return;
+    allItems.push({
+      id: `${cveId}-${item.source?.toLowerCase() ?? 'cve-record'}-enrichment`,
+      source: 'NVD',
+      cveId,
+      title: pickText(item.title, cveId) ?? cveId,
+      description: pickText(item.descriptions?.[0]?.value),
+      vendor: pickText(item.vendor),
+      product: pickText(item.product),
+      severity: normalizeSeverity(item.cvssData?.baseSeverity),
+      cvssScore: normalizeNumber(item.cvssData?.baseScore),
+      severitySource: item.cvssData?.baseSeverity ? item.source : undefined,
+      cvssSource: item.cvssData?.baseScore ? item.source : undefined,
+      datePublished: normalizeDate(item.published),
+      url: item.url,
+      enrichmentSources: [item.source ?? 'CVE_RECORD'],
+    });
+  });
+
+  osvResult.items.forEach((item: any) => {
+    const cveId = normalizeCveId(item.cveId) ?? (item.aliases ?? []).map(normalizeCveId).find(Boolean);
+    if (!cveId) return;
+    allItems.push({
+      id: item.id,
+      source: 'GITHUB_ADVISORY',
+      cveId,
+      title: pickText(item.title, item.id) ?? item.id,
+      description: pickText(item.description),
+      ecosystem: item.ecosystem,
+      packageName: item.packageName,
+      severity: normalizeSeverity(item.severity),
+      severitySource: item.severity ? 'OSV' : undefined,
+      datePublished: normalizeDate(item.published),
+      url: item.url,
+      enrichmentSources: ['OSV'],
+    });
+  });
+
+  vulnCheckResult.items.forEach((item: any) => {
+    const cveId = normalizeCveId(item.cveId);
+    const vulnerability = item.vulnerability ?? {};
+    const metrics = vulnerability.metrics ?? vulnerability.cvss ?? {};
+    const cvss = metrics.cvssV3_1 ?? metrics.cvssV3_0 ?? metrics.cvssV2_0 ?? metrics;
+    if (!cveId) return;
+    allItems.push({
+      id: `${cveId}-vulncheck-enrichment`,
+      source: 'NVD',
+      cveId,
+      title: cveId,
+      description: pickText(vulnerability.descriptions?.[0]?.value, vulnerability.description),
+      vendor: pickText(vulnerability.vendor, vulnerability.vendorProject),
+      product: pickText(vulnerability.product),
+      severity: normalizeSeverity(cvss.baseSeverity ?? vulnerability.severity),
+      cvssScore: normalizeNumber(cvss.baseScore ?? vulnerability.cvssScore),
+      severitySource: cvss.baseSeverity || vulnerability.severity ? 'VULNCHECK' : undefined,
+      cvssSource: cvss.baseScore || vulnerability.cvssScore ? 'VULNCHECK' : undefined,
+      datePublished: normalizeDate(vulnerability.published ?? vulnerability.publishedDate),
+      url: vulnerability.url,
+      enrichmentSources: ['VULNCHECK'],
     });
   });
 
   enrichCorrelatedItems(allItems);
+  const canonicalItems = uniqueByCveOrId(allItems);
 
   // Compute stats
-  const stats = computeThreatStats(allItems);
+  const stats = computeThreatStats(canonicalItems);
 
   // Group data
-  const exploited = allItems.filter(i => i.isKnownExploited).sort(byPriority).slice(0, 10);
-  const recentCves = allItems.filter(i => i.source === 'NVD').sort(byNewest).slice(0, 20);
-  const advisories = allItems.filter(i => i.source === 'GITHUB_ADVISORY').sort(byNewest).slice(0, 10);
-  const epssLeaderboard = allItems
+  const exploited = uniqueByCveOrId(allItems.filter(i => i.isKnownExploited)).sort(byPriority).slice(0, 10);
+  const recentCves = uniqueByCveOrId(allItems.filter(i => i.source === 'NVD')).sort(byNewest).slice(0, 20);
+  const advisories = uniqueByCveOrId(allItems.filter(i => i.source === 'GITHUB_ADVISORY')).sort(byNewest).slice(0, 10);
+  const epssLeaderboard = uniqueByCveOrId(allItems
     .filter(i => i.epssScore !== undefined)
+  )
     .sort(byEpssLeaderboard)
     .slice(0, 10);
 
@@ -307,7 +488,7 @@ export async function fetchAndNormalizeData(): Promise<CyberDashboardData> {
     };
   });
 
-  allItems.forEach(item => {
+  canonicalItems.forEach(item => {
     // Severity distribution
     if (item.severity) {
       severityDistribution[item.severity] = (severityDistribution[item.severity] || 0) + 1;

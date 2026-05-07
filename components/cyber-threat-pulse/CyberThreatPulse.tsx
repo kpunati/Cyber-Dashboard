@@ -312,7 +312,10 @@ export default function CyberThreatPulse() {
             {/* EPSS Leaderboard Table */}
             <div className="panel rounded-lg border border-amber-500/25 bg-[#070b0c] p-3" id="exploit-risk">
               <div className="flex items-center justify-between gap-4 mb-3">
-                <h2 className="text-base font-bold uppercase text-amber-300">Exploit Probability Leaderboard <span className="font-normal text-slate-400">(EPSS)</span></h2>
+                <div>
+                  <h2 className="text-base font-bold uppercase text-amber-300">Exploit Probability Leaderboard <span className="font-normal text-slate-400">(EPSS)</span></h2>
+                  <p className="mt-1 text-xs text-slate-500">Low percentages are normal for live EPSS; percentile shows relative risk.</p>
+                </div>
                 {renderViewToggle('epss', filteredEpss.length)}
               </div>
               <ThreatTable

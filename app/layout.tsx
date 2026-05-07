@@ -4,6 +4,9 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Cyber Threat Pulse',
   description: 'Public vulnerability intelligence dashboard',
+  icons: {
+    icon: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({

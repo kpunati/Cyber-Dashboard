@@ -20,6 +20,49 @@ function getPublishedTime(item: { published?: string; cveId?: string }) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function normalizeNvdVulnerability(item: any) {
+  const cve = item.cve || {};
+  const descriptions: any[] = cve.descriptions ?? [];
+  const description = descriptions.find(desc => desc.lang === 'en')?.value ?? descriptions[0]?.value;
+  const metrics = cve.metrics ?? {};
+  const metricCandidates = [
+    ...(metrics.cvssMetricV40 ?? []),
+    ...(metrics.cvssMetricV31 ?? []),
+    ...(metrics.cvssMetricV30 ?? []),
+    ...(metrics.cvssMetricV2 ?? []),
+  ];
+  const metric = metricCandidates[0] ?? {};
+  const weaknesses: any[] = cve.weaknesses ?? [];
+  const cwe = weaknesses
+    .flatMap(weakness => weakness.description ?? [])
+    .find((entry: any) => entry.lang === 'en')?.value;
+
+  const configurations: any[] = cve.configurations ?? [];
+  const cpeMatch = configurations
+    .flatMap(configuration => configuration.nodes ?? [])
+    .flatMap(node => node.cpeMatch ?? [])
+    .find(match => match.criteria);
+  const cpeParts = typeof cpeMatch?.criteria === 'string' ? cpeMatch.criteria.split(':') : [];
+  const cpeVendor = cpeParts[3]?.replace(/_/g, ' ');
+  const cpeProduct = cpeParts[4]?.replace(/_/g, ' ');
+
+  return {
+    cveId: cve.id,
+    descriptions: [{ value: description }],
+    cvssData: {
+      baseSeverity: metric.cvssData?.baseSeverity ?? metric.baseSeverity ?? 'UNKNOWN',
+      baseScore: metric.cvssData?.baseScore ?? metric.baseScore,
+      vectorString: metric.cvssData?.vectorString,
+    },
+    cwe,
+    vendor: cpeVendor,
+    product: cpeProduct,
+    published: cve.published,
+    lastModified: cve.lastModified,
+    url: cve.id ? `https://nvd.nist.gov/vuln/detail/${cve.id}` : undefined,
+  };
+}
+
 export async function fetchNvdCves(): Promise<CyberFetchResult<any>> {
   const endpoint = 'https://services.nvd.nist.gov/rest/json/cves/2.0';
   const now = new Date();
@@ -66,27 +109,9 @@ export async function fetchNvdCves(): Promise<CyberFetchResult<any>> {
       };
     }
 
-    const items = vulnerabilities.map((item: any) => {
-      const cve = item.cve || {};
-      const descriptions: any[] = cve.descriptions ?? [];
-      const description = descriptions.find(desc => desc.lang === 'en')?.value ?? descriptions[0]?.value;
-      const metrics = cve.metrics ?? {};
-      const metricCandidates = [
-        ...(metrics.cvssMetricV31 ?? []),
-        ...(metrics.cvssMetricV30 ?? []),
-        ...(metrics.cvssMetricV2 ?? []),
-      ];
-      const metric = metricCandidates[0] ?? {};
-      const baseSeverity = metric.cvssData?.baseSeverity ?? metric.baseSeverity ?? 'UNKNOWN';
-      const baseScore = metric.cvssData?.baseScore ?? metric.baseScore;
-
-      return {
-        cveId: cve.id,
-        descriptions: [{ value: description }],
-        cvssData: { baseSeverity, baseScore },
-        published: cve.published,
-      };
-    }).sort((a: any, b: any) => getPublishedTime(b) - getPublishedTime(a) || String(a.cveId).localeCompare(String(b.cveId)));
+    const items = vulnerabilities
+      .map(normalizeNvdVulnerability)
+      .sort((a: any, b: any) => getPublishedTime(b) - getPublishedTime(a) || String(a.cveId).localeCompare(String(b.cveId)));
 
     return {
       items,
@@ -109,6 +134,59 @@ export async function fetchNvdCves(): Promise<CyberFetchResult<any>> {
         itemCount: fallbackNvdCves.length,
         fetchedAt,
         message: 'NVD unavailable; using preview data.',
+      },
+    };
+  }
+}
+
+export async function fetchNvdCvesByIds(cveIds: string[]): Promise<CyberFetchResult<any>> {
+  const endpoint = 'https://services.nvd.nist.gov/rest/json/cves/2.0';
+  const fetchedAt = new Date().toISOString();
+  const uniqueIds = Array.from(new Set(cveIds.map(id => id.trim().toUpperCase()).filter(Boolean))).slice(0, 30);
+  const signal = typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal
+    ? AbortSignal.timeout(12000)
+    : undefined;
+  const headers = {
+    Accept: 'application/json',
+    'User-Agent': 'Cyber Threat Pulse/1.0',
+    ...(process.env.NVD_API_KEY ? { apiKey: process.env.NVD_API_KEY } : {}),
+  };
+  const items: any[] = [];
+
+  try {
+    for (const cveId of uniqueIds) {
+      const params = new URLSearchParams({ cveId });
+      const response = await fetch(`${endpoint}?${params.toString()}`, { headers, signal });
+      if (!response.ok) continue;
+      const data = await response.json();
+      const vulnerability = (data.vulnerabilities ?? data.result?.vulnerabilities ?? [])[0];
+      if (vulnerability) {
+        items.push(normalizeNvdVulnerability(vulnerability));
+      }
+    }
+
+    return {
+      items,
+      status: {
+        id: 'NVD',
+        label: 'NVD targeted enrichment',
+        status: items.length ? 'live' : 'fallback',
+        itemCount: items.length,
+        fetchedAt,
+        message: items.length ? undefined : 'Targeted NVD enrichment returned no matching CVEs.',
+      },
+    };
+  } catch (error) {
+    console.warn('Targeted NVD enrichment failed:', error);
+    return {
+      items,
+      status: {
+        id: 'NVD',
+        label: 'NVD targeted enrichment',
+        status: 'fallback',
+        itemCount: items.length,
+        fetchedAt,
+        message: 'Targeted NVD enrichment unavailable.',
       },
     };
   }

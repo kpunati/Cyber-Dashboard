@@ -17,6 +17,10 @@ export type ThreatItem = {
   dateAddedToKev?: string;
   dueDate?: string;
   url?: string;
+  severitySource?: string;
+  cvssSource?: string;
+  epssSource?: string;
+  enrichmentSources?: string[];
 };
 
 export type CyberSourceId = "CISA_KEV" | "NVD" | "GITHUB_ADVISORY" | "EPSS";

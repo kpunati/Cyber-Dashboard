@@ -29,6 +29,12 @@ const sourceLabels: Record<string, string> = {
   NVD: 'NVD',
   GITHUB_ADVISORY: 'GHSA',
   EPSS: 'EPSS',
+  NVD_TARGETED: 'NVD',
+  EPSS_TARGETED: 'EPSS',
+  CISA_VULNRICHMENT: 'CISA',
+  CVE_PROJECT: 'CVE',
+  OSV: 'OSV',
+  VULNCHECK: 'VulnCheck',
 };
 
 const columnClasses: Record<string, string> = {
@@ -94,7 +100,16 @@ export default function ThreatTable({ items, columns, maxRows = 5, emptyLabel = 
           </span>
         );
       case 'severity':
-        return <SeverityBadge severity={item.severity || 'UNKNOWN'} />;
+        return (
+          <div className="flex flex-col items-center gap-1">
+            <SeverityBadge severity={item.severity || 'UNKNOWN'} />
+            {item.severity && item.severity !== 'UNKNOWN' && item.severitySource ? (
+              <span className="text-[0.58rem] uppercase tracking-[0.12em] text-slate-500">{sourceLabels[item.severitySource] || item.severitySource}</span>
+            ) : item.severity === 'UNKNOWN' ? (
+              <span className="text-[0.56rem] uppercase tracking-[0.1em] text-slate-600">Unavailable</span>
+            ) : null}
+          </div>
+        );
       case 'datePublished':
         return <span className="text-[0.74rem] text-slate-300">{formatDate(item.datePublished)}</span>;
       case 'dateAddedToKev':
@@ -117,6 +132,9 @@ export default function ThreatTable({ items, columns, maxRows = 5, emptyLabel = 
                 style={{ width: getEpssBarWidth(item.epssScore) }}
               />
             </div>
+            {item.epssSource ? (
+              <p className="mt-1 text-[0.56rem] uppercase tracking-[0.12em] text-slate-600">{sourceLabels[item.epssSource] || item.epssSource}</p>
+            ) : null}
           </div>
         );
       case 'ecosystem':

@@ -69,3 +69,77 @@ export async function fetchEpss(): Promise<CyberFetchResult<any>> {
     };
   }
 }
+
+export async function fetchEpssForCves(cveIds: string[]): Promise<CyberFetchResult<any>> {
+  const fetchedAt = new Date().toISOString();
+  const uniqueIds = Array.from(new Set(cveIds.map(id => id.trim().toUpperCase()).filter(Boolean))).slice(0, 200);
+
+  if (uniqueIds.length === 0) {
+    return {
+      items: [],
+      status: {
+        id: 'EPSS',
+        label: 'FIRST EPSS targeted enrichment',
+        status: 'fallback',
+        itemCount: 0,
+        fetchedAt,
+        message: 'No CVEs supplied for EPSS enrichment.',
+      },
+    };
+  }
+
+  const params = new URLSearchParams({
+    format: 'json',
+    cve: uniqueIds.join(','),
+  });
+  const endpoint = `https://api.first.org/data/v1/epss?${params.toString()}`;
+
+  try {
+    const response = await fetch(endpoint, {
+      headers: {
+        Accept: 'application/json',
+        'User-Agent': 'Cyber Threat Pulse/1.0',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Targeted EPSS fetch failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    const epssData = data.data ?? [];
+    const items = Array.isArray(epssData)
+      ? epssData.map((item: any) => ({
+        cve: item.cve,
+        epss: parseFloat(item.epss),
+        percentile: parseFloat(item.percentile),
+        date: item.date,
+      }))
+      : [];
+
+    return {
+      items,
+      status: {
+        id: 'EPSS',
+        label: 'FIRST EPSS targeted enrichment',
+        status: items.length ? 'live' : 'fallback',
+        itemCount: items.length,
+        fetchedAt,
+        message: items.length ? undefined : 'EPSS returned no targeted scores.',
+      },
+    };
+  } catch (error) {
+    console.warn('Targeted EPSS fetch failed:', error);
+    return {
+      items: [],
+      status: {
+        id: 'EPSS',
+        label: 'FIRST EPSS targeted enrichment',
+        status: 'fallback',
+        itemCount: 0,
+        fetchedAt,
+        message: 'Targeted EPSS unavailable.',
+      },
+    };
+  }
+}

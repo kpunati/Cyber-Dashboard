@@ -1,64 +1,61 @@
 'use client';
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-
 interface VendorChartProps {
   vendorDistribution: Record<string, number>;
 }
 
+function formatVendorName(vendor: string) {
+  return vendor.length > 18 ? `${vendor.slice(0, 18)}...` : vendor;
+}
+
 export default function VendorChart({ vendorDistribution }: VendorChartProps) {
   const data = Object.entries(vendorDistribution)
-    .sort(([,a], [,b]) => b - a)
+    .sort(([, a], [, b]) => b - a)
     .slice(0, 10)
     .map(([vendor, count]) => ({
-      name: vendor.length > 15 ? vendor.substring(0, 15) + '...' : vendor,
-      fullName: vendor,
-      value: count,
-      displayValue: Math.log10(count + 1)
+      vendor,
+      count,
+      displayValue: Math.log10(count + 1),
     }));
+  const maxDisplayValue = Math.max(...data.map(item => item.displayValue), 1);
 
   return (
-    <div className="panel rounded-lg border border-amber-500/20 bg-[#070b0c] p-4">
-      <div className="flex items-center justify-between gap-4 mb-5">
+    <div className="panel relative overflow-hidden rounded-lg border border-amber-500/20 bg-[#070b0c] p-4">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(251,191,36,0.11),transparent_28%),linear-gradient(135deg,rgba(251,191,36,0.05),transparent_42%)]" />
+      <div className="relative mb-5 flex items-center justify-between gap-4">
         <div>
           <h2 className="text-base font-bold uppercase tracking-[0.02em] text-amber-300">Top Vendors</h2>
           <p className="mt-1 text-sm text-slate-400">Vendors with the most tracked CVEs.</p>
         </div>
         <span className="text-xs uppercase tracking-[0.2em] text-slate-500">Top 10 / scaled</span>
       </div>
-      <div className="h-72">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={data}
-            margin={{ top: 5, right: 10, left: 0, bottom: 0 }}
-            layout="horizontal"
-          >
-            <CartesianGrid stroke="#3f3215" strokeDasharray="4 4" opacity={0.75} />
-            <XAxis
-              type="number"
-              tick={{ fill: '#94a3b8', fontSize: 11 }}
-              axisLine={false}
-              tickLine={false}
-              tickFormatter={(value) => `${Math.round(Math.pow(10, Number(value)) - 1)}`}
-            />
-            <YAxis
-              type="category"
-              dataKey="name"
-              tick={{ fill: '#94a3b8', fontSize: 11 }}
-              axisLine={false}
-              tickLine={false}
-              width={100}
-            />
-            <Tooltip
-              cursor={{ fill: 'rgba(251,191,36,0.05)' }}
-              wrapperStyle={{ outline: 'none' }}
-              contentStyle={{ backgroundColor: '#0b1112', border: '1px solid rgba(245,158,11,0.35)', borderRadius: '0.6rem', color: '#fff' }}
-              formatter={(_, name, props) => [props.payload.value, props.payload.fullName]}
-            />
-            <Bar dataKey="displayValue" fill="#f59e0b" radius={[0, 5, 5, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+
+      {data.length === 0 ? (
+        <div className="relative flex h-72 items-center justify-center rounded border border-dashed border-amber-500/20 bg-black/30 px-4 text-center text-sm text-slate-400">
+          Vendor data is unavailable for the active source window.
+        </div>
+      ) : (
+        <div className="relative h-72 space-y-2.5">
+          {data.map((item, index) => {
+            const width = Math.max((item.displayValue / maxDisplayValue) * 100, 8);
+            return (
+              <div key={item.vendor} className="grid grid-cols-[6.5rem_1fr_3rem] items-center gap-3">
+                <span className="truncate text-right text-xs text-slate-400" title={item.vendor}>
+                  {formatVendorName(item.vendor)}
+                </span>
+                <div className="relative h-5 overflow-hidden rounded-sm border border-amber-500/15 bg-black/45">
+                  <div className="absolute inset-y-0 left-0 bg-[linear-gradient(90deg,#7c2d12,#f59e0b_48%,#fde68a)] shadow-[0_0_18px_rgba(245,158,11,0.32)]" style={{ width: `${width}%` }} />
+                  <div className="absolute inset-0 opacity-35 bg-[linear-gradient(90deg,transparent_0,rgba(255,255,255,0.22)_50%,transparent_100%)] vendor-bar-scan" style={{ animationDelay: `${index * 90}ms` }} />
+                </div>
+                <span className="font-mono text-xs font-semibold text-amber-100">{item.count}</span>
+              </div>
+            );
+          })}
+          <p className="pt-1 text-[0.64rem] leading-4 text-slate-500">
+            Bar length is scaled to keep major vendors visible without flattening smaller counts.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

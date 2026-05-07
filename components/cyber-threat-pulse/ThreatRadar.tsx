@@ -16,6 +16,32 @@ const severityColor = {
   UNKNOWN: '#64748b',
 };
 
+const provenanceLabels: Record<string, string> = {
+  CISA_KEV: 'CISA KEV',
+  NVD: 'NVD',
+  NVD_TARGETED: 'NVD',
+  GITHUB_ADVISORY: 'GitHub',
+  EPSS: 'FIRST EPSS',
+  EPSS_TARGETED: 'FIRST EPSS',
+  CISA_VULNRICHMENT: 'CISA Vulnrichment',
+  CVE_PROJECT: 'CVE Project',
+  OSV: 'OSV',
+  VULNCHECK: 'VulnCheck',
+};
+
+function getRadarNodeColor(item: ThreatItem, severity: ThreatItem['severity']) {
+  if (item.isKnownExploited && severity === 'UNKNOWN') {
+    return '#fbbf24';
+  }
+
+  return severityColor[severity ?? 'UNKNOWN'];
+}
+
+function provenanceLabel(source?: string) {
+  if (!source) return 'Public source unavailable';
+  return provenanceLabels[source] ?? source;
+}
+
 const mapClusters = [
   { cx: 74, cy: 116, width: 54, height: 26, dots: 58 },
   { cx: 92, cy: 151, width: 36, height: 46, dots: 42 },
@@ -145,6 +171,8 @@ function getRadarItems(data: CyberDashboardData) {
 
 export default function ThreatRadar({ data }: ThreatRadarProps) {
   const radarItems = getRadarItems(data);
+  const exploitedSignalCount = radarItems.filter(item => item.isKnownExploited).length;
+  const highEpssSignalCount = radarItems.filter(item => (item.epssScore ?? 0) >= 0.5 || (item.epssPercentile ?? 0) >= 0.95).length;
   const [activeSignal, setActiveSignal] = useState<ActiveSignal | null>(null);
   const activeItem = activeSignal ? radarItems.find(item => item.id === activeSignal.id) : undefined;
   const tooltipLeft = activeSignal ? Math.min(Math.max((activeSignal.x / 300) * 100, 16), 84) : 50;
@@ -162,6 +190,16 @@ export default function ThreatRadar({ data }: ThreatRadarProps) {
 
       <div className="grid grid-cols-1 gap-3 xl:grid-cols-[150px_1fr]">
         <div className="order-2 space-y-4 rounded border border-amber-500/10 bg-black/20 p-4 xl:order-1">
+          <div className="grid grid-cols-2 gap-2 border-b border-amber-500/10 pb-3">
+            <div>
+              <p className="text-[0.58rem] uppercase tracking-[0.18em] text-slate-500">KEV signals</p>
+              <p className="mt-1 font-mono text-lg font-bold text-amber-200">{exploitedSignalCount}</p>
+            </div>
+            <div>
+              <p className="text-[0.58rem] uppercase tracking-[0.18em] text-slate-500">High EPSS</p>
+              <p className="mt-1 font-mono text-lg font-bold text-cyan-200">{highEpssSignalCount}</p>
+            </div>
+          </div>
           <div className="space-y-4 text-xs uppercase tracking-[0.08em] text-slate-300">
             {Object.entries(severityColor).slice(0, 4).map(([severity, color]) => (
               <div key={severity} className="flex items-center gap-3">
@@ -258,6 +296,7 @@ export default function ThreatRadar({ data }: ThreatRadarProps) {
             </g>
             {radarItems.map((item, index) => {
               const { x, y, severity } = getRadarPoint(item, index);
+              const nodeColor = getRadarNodeColor(item, severity);
               const scoreBoost = Math.min((item.epssScore ?? 0) * 5, 4);
               const nodeRadius = item.isKnownExploited ? 6.5 + scoreBoost : 4.5 + scoreBoost;
               const signal = { id: item.id, x, y };
@@ -280,8 +319,8 @@ export default function ThreatRadar({ data }: ThreatRadarProps) {
                   aria-label={`Show details for ${item.cveId || item.id}`}
                 >
                   <circle cx={x} cy={y} r={nodeRadius + 8} fill="url(#glow)" className={item.isKnownExploited ? 'radar-pulse' : ''} />
-                  <circle cx={x} cy={y} r={nodeRadius} fill={severityColor[severity]} opacity="0.96" />
-                  {item.isKnownExploited && <circle cx={x} cy={y} r={nodeRadius + 4} fill="none" stroke="#fecaca" strokeWidth="1" opacity="0.75" />}
+                  <circle cx={x} cy={y} r={nodeRadius} fill={nodeColor} opacity="0.96" />
+                  {item.isKnownExploited && <circle cx={x} cy={y} r={nodeRadius + 4} fill="none" stroke="#fecaca" strokeWidth="1.25" opacity="0.9" />}
                   {isHighEpss && <circle cx={x} cy={y} r={nodeRadius + 7} fill="none" stroke="#67e8f9" strokeWidth="1.2" opacity="0.82" />}
                 </g>
               );
@@ -306,6 +345,8 @@ export default function ThreatRadar({ data }: ThreatRadarProps) {
                 <div className="mt-3 space-y-1 text-xs text-slate-300">
                   <p>EPSS: <span className="text-cyan-300">{activeItem.epssScore !== undefined ? `${Math.round(activeItem.epssScore * 100)}%` : '—'}</span></p>
                   <p>CVSS: <span className="text-white">{activeItem.cvssScore ?? '—'}</span></p>
+                  <p>Severity source: <span className="text-slate-400">{provenanceLabel(activeItem.severitySource)}</span></p>
+                  <p>EPSS source: <span className="text-slate-400">{provenanceLabel(activeItem.epssSource)}</span></p>
                   <p>Known Exploited: <span className={activeItem.isKnownExploited ? 'text-red-400' : 'text-slate-400'}>{activeItem.isKnownExploited ? 'Yes' : 'No'}</span></p>
                   <p>Added to KEV: <span className="text-white">{activeItem.dateAddedToKev ?? '—'}</span></p>
                 </div>
