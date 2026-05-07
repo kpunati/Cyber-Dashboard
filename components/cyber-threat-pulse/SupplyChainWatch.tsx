@@ -25,11 +25,11 @@ export default function SupplyChainWatch({ items, maxAdvisories = 5 }: SupplyCha
   const emptyStateClass = 'rounded border border-dashed border-amber-500/20 bg-black/30 px-4 py-8 text-center text-sm text-slate-400';
 
   return (
-    <div className="panel supply-chain rounded-lg border border-amber-500/25 bg-[#070b0c] p-3">
+    <div className="panel supply-chain flex h-full flex-col rounded-lg border border-amber-500/25 bg-[#070b0c] p-3">
       <div className="mb-3 flex items-center justify-between gap-4">
         <h2 className="text-base font-bold uppercase text-amber-300">Supply Chain Watch <span className="font-normal text-slate-400">(GitHub Advisories)</span></h2>
       </div>
-      <div className="grid gap-3 lg:grid-cols-[0.9fr_1.1fr]">
+      <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[0.9fr_1.1fr]">
         <div className="min-h-[13rem] rounded border border-amber-500/20 bg-black/25">
           <div className="border-b border-amber-500/20 bg-[#171407] px-3 py-2 text-[0.66rem] font-black uppercase tracking-[0.18em] text-amber-300">
             Top ecosystems

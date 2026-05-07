@@ -12,54 +12,66 @@ export default function ThreatSummaryCards({ summary }: ThreatSummaryCardsProps)
       label: 'Known Exploited',
       value: summary.knownExploitedCount,
       note: `+${summary.trends?.knownExploitedLast7Days ?? 0} in last 7 days`,
-      accent: 'border-red-500/60 from-red-500/25 to-[#100807]',
+      accent: 'border-red-500/60 from-red-500/25 via-red-950/20 to-[#100807]',
       icon: 'biohazard',
       tone: 'text-red-300',
+      glow: 'shadow-red-950/30',
+      rail: 'from-red-300 via-red-500 to-transparent',
       info: 'Known exploited means attackers have already used these security flaws in the real world.',
     },
     {
       label: 'Critical CVEs',
       value: summary.criticalCount,
       note: `+${summary.trends?.criticalLast7Days ?? 0} in last 7 days`,
-      accent: 'border-amber-400/60 from-amber-400/20 to-[#100c03]',
+      accent: 'border-amber-400/60 from-amber-400/25 via-yellow-950/20 to-[#100c03]',
       icon: 'shield',
       tone: 'text-amber-200',
+      glow: 'shadow-amber-950/30',
+      rail: 'from-amber-200 via-amber-400 to-transparent',
       info: 'Critical CVEs are the most serious reported software flaws and should usually be fixed first.',
     },
     {
       label: 'High EPSS',
       value: summary.highEpssCount,
       note: `+${summary.trends?.highEpssLast7Days ?? 0} in last 7 days`,
-      accent: 'border-cyan-400/50 from-cyan-400/20 to-[#031013]',
+      accent: 'border-cyan-400/50 from-cyan-400/25 via-cyan-950/20 to-[#031013]',
       icon: 'target',
       tone: 'text-cyan-200',
+      glow: 'shadow-cyan-950/30',
+      rail: 'from-cyan-200 via-cyan-400 to-transparent',
       info: 'High EPSS means a flaw is more likely to be exploited soon based on public threat signals.',
     },
     {
       label: 'OSS Advisories',
       value: summary.openSourceAdvisoryCount,
       note: `+${summary.trends?.openSourceAdvisoriesLast7Days ?? 0} in last 7 days`,
-      accent: 'border-amber-400/50 from-yellow-400/18 to-[#100c03]',
+      accent: 'border-amber-400/50 from-yellow-400/20 via-amber-950/10 to-[#100c03]',
       icon: 'cube',
       tone: 'text-amber-200',
+      glow: 'shadow-amber-950/30',
+      rail: 'from-yellow-200 via-amber-400 to-transparent',
       info: 'OSS advisories are security warnings for open-source software packages used by developers.',
     },
     {
       label: 'Top Ecosystem',
       value: summary.topEcosystem || 'N/A',
       note: `${summary.trends?.topEcosystemAdvisories ?? 0} advisories`,
-      accent: 'border-amber-400/50 from-amber-400/16 to-[#100c03]',
+      accent: 'border-amber-400/50 from-amber-400/20 via-amber-950/10 to-[#100c03]',
       icon: 'code',
       tone: 'text-amber-200',
+      glow: 'shadow-amber-950/25',
+      rail: 'from-amber-200 via-amber-400 to-transparent',
       info: 'Top ecosystem shows which package community, like npm or pip, has the most tracked advisories here.',
     },
     {
       label: 'Top Vendor',
       value: summary.topVendor || 'N/A',
       note: `${summary.trends?.topVendorCves ?? 0} CVEs`,
-      accent: 'border-amber-400/50 from-yellow-400/18 to-[#100c03]',
+      accent: 'border-amber-400/50 from-yellow-400/20 via-yellow-950/10 to-[#100c03]',
       icon: 'city',
       tone: 'text-amber-200',
+      glow: 'shadow-amber-950/25',
+      rail: 'from-yellow-200 via-amber-400 to-transparent',
       info: 'Top vendor shows the company or project with the most tracked CVEs in this dashboard.',
     },
   ];
@@ -126,47 +138,53 @@ export default function ThreatSummaryCards({ summary }: ThreatSummaryCardsProps)
   };
 
   return (
-    <div className="summary-cards grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-6">
+    <div className="summary-cards relative z-30 grid grid-cols-1 gap-3 overflow-visible sm:grid-cols-2 xl:grid-cols-6">
       {cards.map((card, index) => (
         <div
           key={card.label}
-          className={`panel group relative min-h-[7.25rem] overflow-visible rounded-xl border bg-[#0b0f0f] p-3 shadow-[0_0_0_1px_rgba(251,191,36,0.03),0_20px_48px_rgba(0,0,0,0.38)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_0_24px_rgba(245,158,11,0.16),0_24px_54px_rgba(0,0,0,0.45)] ${card.accent}`}
+          className={`panel group relative z-0 min-h-[7.05rem] overflow-visible rounded-lg border bg-[#070b0c] p-3 shadow-2xl ${card.glow} transition duration-200 hover:z-[80] hover:-translate-y-0.5 hover:border-amber-300/60 hover:shadow-[0_0_26px_rgba(245,158,11,0.18),0_24px_58px_rgba(0,0,0,0.48)] focus-within:z-[80] ${card.accent}`}
         >
-          <div className="group/info absolute right-2 top-2 z-40">
-            <button
-              type="button"
-              className="flex h-5 w-5 items-center justify-center rounded-full border border-slate-500/50 bg-black/65 text-[0.68rem] font-bold text-slate-300 outline-none ring-offset-2 ring-offset-black transition hover:border-amber-300/70 hover:bg-amber-300/10 hover:text-amber-200 focus:border-amber-300/80 focus:text-amber-100 focus:ring-2 focus:ring-amber-300/30"
-              aria-label={`What does ${card.label} mean?`}
-              aria-describedby={`${card.label.replace(/\s+/g, '-').toLowerCase()}-info`}
-            >
-              i
-            </button>
-            <div
-              id={`${card.label.replace(/\s+/g, '-').toLowerCase()}-info`}
-              role="tooltip"
-              className={`pointer-events-none absolute top-7 hidden w-[min(17rem,calc(100vw-2rem))] rounded-lg border border-amber-400/30 bg-[#070b0c]/98 p-3 text-[0.74rem] font-medium leading-5 text-slate-200 shadow-2xl shadow-black/70 backdrop-blur-sm group-hover/info:block group-focus-within/info:block ${getTooltipPlacement(index)}`}
-            >
-              <span className="mb-1 block text-[0.62rem] font-bold uppercase tracking-[0.18em] text-amber-300">
-                Quick meaning
-              </span>
-              {card.info}
+          <div className={`absolute left-0 top-0 h-px w-2/3 bg-gradient-to-r ${card.rail} opacity-80`} />
+          <div className="absolute right-2 top-2 z-40">
+            <div className="group/info relative">
+              <button
+                type="button"
+                className="flex h-5 w-5 items-center justify-center rounded-full border border-slate-500/50 bg-black/75 font-mono text-[0.66rem] font-black text-slate-300 outline-none ring-offset-2 ring-offset-black transition hover:border-amber-300/80 hover:bg-amber-300/10 hover:text-amber-100 focus:border-amber-300/80 focus:text-amber-100 focus:ring-2 focus:ring-amber-300/30"
+                aria-label={`What does ${card.label} mean?`}
+                aria-describedby={`${card.label.replace(/\s+/g, '-').toLowerCase()}-info`}
+              >
+                i
+              </button>
+              <div
+                id={`${card.label.replace(/\s+/g, '-').toLowerCase()}-info`}
+                role="tooltip"
+                className={`pointer-events-none absolute top-7 z-[120] hidden w-[min(17.5rem,calc(100vw-2rem))] rounded-md border border-amber-300/35 bg-[#06090a]/95 p-3 text-[0.74rem] font-semibold leading-5 text-slate-200 shadow-[0_18px_48px_rgba(0,0,0,0.72),0_0_22px_rgba(245,158,11,0.12)] backdrop-blur-md group-hover/info:block group-focus-within/info:block ${getTooltipPlacement(index)}`}
+              >
+                <span className="mb-1.5 block border-b border-amber-400/15 pb-1.5 text-[0.58rem] font-black uppercase tracking-[0.22em] text-amber-300">
+                  Quick meaning
+                </span>
+                {card.info}
+              </div>
             </div>
           </div>
           <div className={`absolute inset-0 bg-gradient-to-br ${card.accent.replace(/border-[^ ]+ /, '')} opacity-90 transition-opacity group-hover:opacity-100`} />
-          <div className="absolute inset-0 opacity-[0.08] bg-[radial-gradient(circle_at_70%_30%,#facc15,transparent_22%),linear-gradient(135deg,#fbbf24_1px,transparent_1px)] bg-[size:18px_18px]" />
-          <div className="relative flex h-full items-center gap-3">
-            <div className="shrink-0 scale-95 drop-shadow-[0_0_18px_rgba(251,191,36,0.12)]">{renderIcon(card.icon, card.tone)}</div>
+          <div className="absolute inset-0 opacity-[0.1] bg-[radial-gradient(circle_at_74%_24%,#facc15,transparent_22%),linear-gradient(135deg,#fbbf24_1px,transparent_1px)] bg-[size:18px_18px]" />
+          <div className="absolute inset-x-3 bottom-2 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+          <div className="relative flex h-full items-center gap-3.5">
+            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-md border border-white/10 bg-black/20 drop-shadow-[0_0_18px_rgba(251,191,36,0.12)]">
+              <div className="scale-90">{renderIcon(card.icon, card.tone)}</div>
+            </div>
             <div className="min-w-0">
-              <p className={`text-[0.64rem] font-bold uppercase tracking-[0.18em] ${card.tone}`}>{card.label}</p>
+              <p className={`text-[0.62rem] font-black uppercase leading-4 tracking-[0.24em] ${card.tone}`}>{card.label}</p>
               <p
                 className={`mt-1.5 max-w-full break-words font-semibold leading-none tracking-tight text-white ${
-                  String(card.value).length > 12 ? 'text-[clamp(1.25rem,1.4vw,1.6rem)] leading-tight' : 'text-[clamp(1.75rem,2vw,2.35rem)]'
+                  String(card.value).length > 12 ? 'text-[clamp(1.22rem,1.35vw,1.55rem)] leading-tight' : 'text-[clamp(1.85rem,2.2vw,2.55rem)]'
                 }`}
                 title={String(card.value)}
               >
                 {card.value}
               </p>
-              <p className="mt-1 text-xs text-slate-400">{card.note}</p>
+              <p className="mt-1.5 text-[0.72rem] font-medium leading-4 text-slate-400">{card.note}</p>
             </div>
           </div>
         </div>

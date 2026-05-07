@@ -22,7 +22,7 @@ export default function ThreatTimeline({ timeline }: ThreatTimelineProps) {
   const hasSeriesData = timeline.some(point => (point.cvePublished ?? 0) > 0 || (point.kevAdded ?? 0) > 0 || (point.ossAdvisories ?? 0) > 0);
 
   return (
-    <div className="panel rounded-lg border border-amber-500/25 bg-[#070b0c] p-3">
+    <div className="panel flex h-full flex-col rounded-lg border border-amber-500/25 bg-[#070b0c] p-3">
       <div className="flex items-center justify-between gap-4 mb-3">
         <div>
           <h2 className="text-base font-bold uppercase text-amber-300">Threat Timeline <span className="font-normal text-slate-400">(30 days)</span></h2>
@@ -34,7 +34,7 @@ export default function ThreatTimeline({ timeline }: ThreatTimelineProps) {
           <span className="inline-flex items-center gap-1.5"><span className="h-1.5 w-4 rounded-full bg-amber-300" /> OSS</span>
         </div>
       </div>
-      <div className="h-60">
+      <div className="min-h-60 flex-1">
         {hasSeriesData ? (
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={timeline} margin={{ top: 8, right: 18, left: -8, bottom: 0 }}>

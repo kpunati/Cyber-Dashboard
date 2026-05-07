@@ -150,8 +150,9 @@ export default function CyberThreatPulse() {
         type="button"
         onClick={() => canExpand && togglePanel(panel)}
         disabled={!canExpand}
-        className={`text-xs transition ${canExpand ? 'text-amber-300 hover:text-amber-100' : 'cursor-default text-slate-600'}`}
+        className={`rounded-sm px-1.5 py-0.5 text-[0.68rem] font-bold uppercase tracking-[0.08em] transition ${canExpand ? 'text-amber-300 hover:bg-amber-300/10 hover:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-300/30' : 'cursor-default text-slate-600'}`}
         aria-expanded={isExpanded}
+        aria-label={`${canExpand ? (isExpanded ? 'Collapse' : 'Expand') : 'Showing'} ${panel} panel`}
       >
         {canExpand ? (isExpanded ? 'Show less' : `View all ${total}`) : `Top ${total}`}
       </button>
@@ -164,11 +165,16 @@ export default function CyberThreatPulse() {
       <SidebarNav />
 
       {/* Main Content */}
-      <main className="relative mx-auto max-w-[1640px] p-3 md:ml-24 md:p-4">
+      <main className="relative mx-auto max-w-[1640px] p-2 md:ml-24 md:p-4">
         <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(245,158,11,0.09),transparent_26%),radial-gradient(circle_at_85%_10%,rgba(250,204,21,0.07),transparent_30%),linear-gradient(120deg,rgba(251,191,36,0.035),transparent_45%)]" />
+        <div className="command-shell relative overflow-hidden rounded-xl p-2 md:p-3">
+        <div className="pointer-events-none absolute left-3 top-3 z-10 hidden h-4 w-4 border-l border-t border-amber-300/60 md:block" />
+        <div className="pointer-events-none absolute right-3 top-3 z-10 hidden h-4 w-4 border-r border-t border-amber-300/60 md:block" />
+        <div className="pointer-events-none absolute bottom-3 left-3 z-10 hidden h-4 w-4 border-b border-l border-amber-300/30 md:block" />
+        <div className="pointer-events-none absolute bottom-3 right-3 z-10 hidden h-4 w-4 border-b border-r border-amber-300/30 md:block" />
         <div className="relative">
         {/* Header Section */}
-        <section className="panel relative mb-3 overflow-hidden rounded-lg border border-slate-700/70 bg-[#05090a]/95 p-0" id="overview">
+        <section className="panel relative mb-2 overflow-hidden rounded-lg border border-slate-700/70 bg-[#05090a]/95 p-0" id="overview">
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/80 to-transparent" />
           <div className="pointer-events-none absolute inset-0 opacity-[0.08] bg-[linear-gradient(90deg,#fbbf24_1px,transparent_1px)] bg-[size:64px_64px]" />
           <div className="relative grid grid-cols-1 lg:grid-cols-[76px_minmax(340px,1fr)_300px_420px]">
@@ -182,7 +188,7 @@ export default function CyberThreatPulse() {
               </div>
             </div>
             <div className="flex min-h-[5.75rem] flex-col justify-center border-b border-slate-700/60 px-4 py-3 lg:border-b-0 lg:border-r">
-              <h1 className="text-[1.65rem] font-black uppercase leading-none tracking-[0.08em] text-amber-300 md:text-[2rem]">
+              <h1 className="text-[1.7rem] font-black uppercase leading-none tracking-[0.095em] text-amber-300 drop-shadow-[0_0_16px_rgba(250,204,21,0.16)] md:text-[2.15rem]">
                 Cyber Threat Pulse
               </h1>
               <p className="mt-2 text-sm font-semibold text-white">
@@ -190,7 +196,7 @@ export default function CyberThreatPulse() {
               </p>
             </div>
             <div className="flex min-h-[5.75rem] flex-col justify-center border-b border-slate-700/60 px-4 py-3 lg:border-b-0 lg:border-r">
-              <p className="text-[0.66rem] font-bold uppercase tracking-[0.22em] text-slate-400">Last updated</p>
+              <p className="panel-title-kicker text-[0.66rem] font-bold text-slate-400">Last updated</p>
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-semibold text-white">
                 <span>{formatTimestamp(data.generatedAt)}</span>
                 <span className="inline-flex items-center gap-2 text-xs font-semibold">
@@ -203,7 +209,7 @@ export default function CyberThreatPulse() {
               </p>
             </div>
             <div className="flex min-h-[5.75rem] flex-col justify-center px-4 py-3">
-              <p className="text-[0.66rem] font-bold uppercase tracking-[0.22em] text-slate-400">Data sources</p>
+              <p className="panel-title-kicker text-[0.66rem] font-bold text-slate-400">Data sources</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {Object.values(data.sourceStatus).map(source => (
                   <span key={source.id} className={`inline-flex items-center gap-2 rounded border px-2.5 py-1.5 text-[0.68rem] font-bold shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ${
@@ -222,7 +228,7 @@ export default function CyberThreatPulse() {
         </section>
 
         {/* Filters */}
-        <section className="mb-3 overflow-hidden rounded-lg border border-amber-500/20 bg-[linear-gradient(90deg,rgba(251,191,36,0.08),rgba(0,0,0,0.26)_34%,rgba(15,23,42,0.18))]">
+        <section className="mb-2 overflow-hidden rounded-lg border border-amber-500/20 bg-[linear-gradient(90deg,rgba(251,191,36,0.08),rgba(0,0,0,0.26)_34%,rgba(15,23,42,0.18))]">
           <div className="grid gap-0 xl:grid-cols-[minmax(220px,0.9fr)_1.4fr_1.6fr_auto]">
             <div className="border-b border-amber-500/10 px-3 py-2.5 xl:border-b-0 xl:border-r">
               <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-amber-300">Intelligence filters</p>
@@ -287,9 +293,9 @@ export default function CyberThreatPulse() {
         <ThreatSummaryCards summary={data.summary} />
 
         {/* Main Grid Layout */}
-        <div className="grid grid-cols-1 xl:grid-cols-[1.05fr_1fr] gap-3 mt-3">
+        <div className="mt-2 grid grid-cols-1 gap-3 xl:grid-cols-[1.05fr_1fr]">
           {/* Left Column: Threat Radar */}
-          <div>
+          <div className="h-full">
             <ThreatRadar data={data} />
           </div>
 
@@ -298,13 +304,14 @@ export default function CyberThreatPulse() {
             {/* Exploited in the Wild Table */}
             <div className="panel rounded-lg border border-amber-500/25 bg-[#070b0c] p-3" id="exploited">
               <div className="flex items-center justify-between gap-4 mb-3">
-                <h2 className="text-base font-bold uppercase text-amber-300">Exploited in the Wild <span className="font-normal text-slate-400">(CISA KEV)</span></h2>
+                <h2 className="text-base font-black uppercase tracking-[-0.02em] text-amber-300">Exploited in the Wild <span className="font-normal text-slate-400">(CISA KEV)</span></h2>
                 {renderViewToggle('exploited', filteredExploited.length)}
               </div>
               <ThreatTable
                 items={filteredExploited}
                 columns={['cveId', 'vendor', 'severity', 'dateAddedToKev', 'dueDate', 'epssScore']}
                 maxRows={panelRowLimit(expandedPanels.exploited, filteredExploited.length)}
+                maxHeightClass={expandedPanels.exploited ? 'max-h-[25rem]' : undefined}
                 emptyLabel="No exploited vulnerabilities match the active filters."
               />
             </div>
@@ -322,6 +329,7 @@ export default function CyberThreatPulse() {
                 items={filteredEpss}
                 columns={['cveId', 'epssScore', 'severity', 'kev', 'source']}
                 maxRows={panelRowLimit(expandedPanels.epss, filteredEpss.length)}
+                maxHeightClass={expandedPanels.epss ? 'max-h-[24rem]' : undefined}
                 emptyLabel="No EPSS-ranked items match the active filters."
               />
             </div>
@@ -329,24 +337,27 @@ export default function CyberThreatPulse() {
         </div>
 
         {/* Bottom Row: Three Column Layout */}
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_1.35fr_1.15fr] gap-3 mt-3">
+        <div className="mt-3 grid grid-cols-1 items-stretch gap-3 xl:grid-cols-[1fr_1.35fr_1.15fr]">
           {/* New Vulnerabilities */}
-          <div className="panel rounded-lg border border-amber-500/25 bg-[#070b0c] p-3" id="vulnerabilities">
+          <div className="panel flex h-full flex-col rounded-lg border border-amber-500/25 bg-[#070b0c] p-3" id="vulnerabilities">
             <div className="flex items-center justify-between gap-4 mb-3">
               <h2 className="text-base font-bold uppercase text-amber-300">New Vulnerabilities <span className="font-normal text-slate-400">(NVD)</span></h2>
               {renderViewToggle('recent', filteredRecentCves.length)}
             </div>
-            <ThreatTable
-              items={filteredRecentCves}
-              columns={['cveId', 'severity', 'datePublished', 'title']}
-              maxRows={panelRowLimit(expandedPanels.recent, filteredRecentCves.length)}
-              emptyLabel="No recent CVEs match the active filters."
-            />
+            <div className="min-h-0 flex-1">
+              <ThreatTable
+                items={filteredRecentCves}
+                columns={['cveId', 'severity', 'datePublished', 'title']}
+                maxRows={panelRowLimit(expandedPanels.recent, filteredRecentCves.length)}
+                maxHeightClass={expandedPanels.recent ? 'max-h-[28rem]' : undefined}
+                emptyLabel="No recent CVEs match the active filters."
+              />
+            </div>
           </div>
 
           {/* Supply Chain Watch */}
-          <div id="supply-chain">
-            <div className="relative">
+          <div id="supply-chain" className="h-full">
+            <div className="relative h-full">
               <div className="absolute right-3 top-3 z-10">
                 {renderViewToggle('supply', filteredAdvisories.length)}
               </div>
@@ -358,19 +369,19 @@ export default function CyberThreatPulse() {
           </div>
 
           {/* Threat Timeline */}
-          <div id="timeline">
+          <div id="timeline" className="h-full">
             <ThreatTimeline timeline={data.charts.timeline} />
           </div>
         </div>
 
         {/* Distribution Charts */}
-        <section className="mt-3" aria-labelledby="secondary-analytics-heading">
+        <section className="mt-3 rounded-lg border border-slate-800/70 bg-black/20 p-3 opacity-90" aria-labelledby="secondary-analytics-heading">
           <div className="mb-2 flex items-center justify-between gap-4">
             <div>
               <h2 id="secondary-analytics-heading" className="text-sm font-bold uppercase tracking-[0.14em] text-amber-300">
                 Secondary Analytics
               </h2>
-              <p className="mt-1 text-xs text-slate-500">Distribution views for deeper context below the primary command module.</p>
+              <p className="mt-1 text-xs text-slate-500">Optional distribution context kept below the primary command module.</p>
             </div>
             <span className="hidden text-[0.65rem] uppercase tracking-[0.18em] text-slate-600 sm:inline">Below the fold</span>
           </div>
@@ -380,6 +391,7 @@ export default function CyberThreatPulse() {
           <VendorChart vendorDistribution={data.charts.vendorDistribution} />
         </div>
         </section>
+        </div>
 
         {/* Footer */}
         <section className="panel mt-3 grid gap-4 rounded-lg border border-slate-700/70 bg-[#05090a] p-4 text-xs text-slate-400 lg:grid-cols-[1fr_1px_1fr_1px_auto]" id="about">

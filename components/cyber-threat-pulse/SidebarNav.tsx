@@ -31,20 +31,29 @@ export default function SidebarNav({ onNavigate }: SidebarNavProps) {
   };
 
   return (
-    <div className="fixed left-0 top-0 z-50 hidden h-screen w-24 flex-col items-center space-y-5 border-r border-slate-700/70 bg-[#05090a]/95 py-8 backdrop-blur md:flex">
+    <div className="fixed left-0 top-0 z-50 hidden h-screen w-24 flex-col items-center gap-4 border-r border-slate-700/70 bg-[#030708]/95 py-7 shadow-[8px_0_42px_rgba(0,0,0,0.42)] backdrop-blur md:flex">
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-amber-300/25 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.06] bg-[linear-gradient(180deg,#facc15_1px,transparent_1px)] bg-[size:100%_22px]" />
       {navItems.map((item) => (
         <button
           key={item.id}
           onClick={() => handleClick(item.id)}
-          className={`w-16 h-16 flex flex-col items-center justify-center rounded-sm transition-all ${
+          aria-current={active === item.id ? 'page' : undefined}
+          className={`group relative flex h-16 w-16 flex-col items-center justify-center overflow-hidden rounded-[0.28rem] border transition-all duration-200 ${
             active === item.id
-              ? 'bg-amber-400/10 border border-amber-400/45 text-amber-300 shadow-lg shadow-amber-500/10'
-              : 'border border-transparent text-slate-400 hover:border-amber-400/25 hover:text-amber-200'
+              ? 'border-amber-300/60 bg-amber-400/10 text-amber-200 shadow-[0_0_26px_rgba(245,158,11,0.16),inset_0_0_18px_rgba(245,158,11,0.05)]'
+              : 'border-transparent text-slate-400 hover:border-amber-400/30 hover:bg-amber-300/[0.035] hover:text-amber-200'
           }`}
           title={item.label}
         >
-          <div className="font-mono text-lg font-bold">{item.icon}</div>
-          <div className="text-[0.62rem] mt-1 font-semibold uppercase">{item.label.substring(0, 3)}</div>
+          <span
+            className={`absolute left-0 top-2 h-10 w-px bg-gradient-to-b from-transparent via-amber-300 to-transparent transition-opacity ${
+              active === item.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-45'
+            }`}
+          />
+          <span className="absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100 bg-[radial-gradient(circle_at_50%_0%,rgba(251,191,36,0.14),transparent_56%)]" />
+          <div className="relative font-mono text-lg font-black leading-none tracking-tight">{item.icon}</div>
+          <div className="relative mt-2 text-[0.58rem] font-black uppercase tracking-[0.08em]">{item.label.substring(0, 3)}</div>
         </button>
       ))}
     </div>
